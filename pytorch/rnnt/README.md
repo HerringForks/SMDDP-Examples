@@ -1,3 +1,6 @@
+# Fork Info
+This example is forked from https://github.com/mlcommons/training_results_v1.0/tree/master/NVIDIA/benchmarks/rnnt/implementations/pytorch.
+
 # 1. Problem 
 Speech recognition accepts raw audio samples and produces a corresponding text transcription.
 
