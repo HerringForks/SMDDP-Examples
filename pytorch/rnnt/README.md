@@ -1,6 +1,25 @@
 # Fork Info
 This example is forked from https://github.com/mlcommons/training_results_v1.0/tree/master/NVIDIA/benchmarks/rnnt/implementations/pytorch.
 
+# Run Instructions on AWS P-Clusters
+```
+# prepare training data
+
+# build the docker image for NCCl
+
+# import the docker image with enroot
+enroot import --output rnnt-nccl.sqsh 'dockerd:<docker_image>'
+
+# unpack the imported image
+enroot create --name pyxis_rnnt-nccl ./rnnt-nccl.sqsh
+
+# run config files for 8, 16, or 32 GPUS
+source config_8GPUS.sh
+
+# start training with our image
+CONTNAME=rnn-nccl DATADIR=/fsx/datasets/ LOGDIR=/home/ec2-user/rnnt_local/logs METADATA_DIR=/fsx/tokenized/ SENTENCEPIECES_DIR=/fsx/sentencepieces/ sbatch -N $DGXNNODES -t $WALLTIME run.sub
+```
+
 # 1. Problem 
 Speech recognition accepts raw audio samples and produces a corresponding text transcription.
 

@@ -5,7 +5,7 @@ set -euxo pipefail
 
 # Vars without defaults
 : "${DGXSYSTEM:?DGXSYSTEM not set}"
-: "${CONT:?CONT not set}"
+: "${CONTNAME:?CONTNAME not set}"
 
 # Vars with defaults
 : "${NEXP:=1}"
@@ -20,7 +20,7 @@ set -euxo pipefail
 # Other vars
 readonly _logfile_base="${LOGDIR}/${DATESTAMP}"
 # smddp: 
-readonly _cont_name=rnn_speech_recognition_smddp_edition
+readonly _cont_name=${CONTNAME}
 _cont_mounts="${DATADIR}:/datasets/,${LOGDIR}:/results"
 _cont_mounts+=",${METADATA_DIR}:/metadata"
 _cont_mounts+=",${SENTENCEPIECES_DIR}:/sentencepieces"
@@ -44,7 +44,7 @@ mkdir -p "${LOGDIR}"
 srun --ntasks="${SLURM_JOB_NUM_NODES}" mkdir -p "${LOGDIR}"
 
 # Setup container
-srun --ntasks="${SLURM_JOB_NUM_NODES}" --container-image="${CONT}" --container-name="${_cont_name}" true
+#srun --ntasks="${SLURM_JOB_NUM_NODES}" --container-image="${CONT}" --container-name="${_cont_name}" true
 
 if [[ $DGXSYSTEM == "DGXA100"* ]]; then
   export NCCL_TOPO_FILE="/workspace/rnnt/dgxa100_nic_affinity.xml"
@@ -73,6 +73,6 @@ logging.log_event(key=logging.constants.CACHE_CLEAR, value=True)\""
         # Run experiment
         SEED=$(($SEED + $_experiment_index)) srun --mpi=none \
             --container-name="${_cont_name}" --container-mounts="${_cont_mounts}" \
-            bash -c 'cd /workspace/rnnt && ./run_and_time.sh'
+            bash -c 'cd /workspace/rnnt && bash ./run_and_time.sh'
     ) |& tee "${_logfile_base}_${_experiment_index}.log"
 done
