@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:21.05-py3
+# smddp: use dlc pytorch 1.8.1
+ARG FROM_IMAGE_NAME=763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:1.8.1-gpu-py36-cu111-ubuntu18.04
 FROM ${FROM_IMAGE_NAME}
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
-    apt-get install -y libsndfile1=1.0.28-7 sox=14.4.2+git20190427-2 git=1:2.25.1-1ubuntu3.1 cmake=3.16.3-1ubuntu1 jq=1.6-1ubuntu0.20.04.1 && \
-    apt-get install -y --no-install-recommends numactl=2.0.12-1 && \
+    apt-get install -y libsndfile1=1.0.28-4ubuntu0.18.04.2 sox=14.4.2-3ubuntu0.18.04.1 && \
+    apt-get install -y --no-install-recommends numactl=2.0.11-2.1ubuntu0.1 && \
     rm -rf /var/lib/apt/lists/*
 
 RUN COMMIT_SHA=f546575109111c455354861a0567c8aa794208a2 && \
@@ -43,9 +44,21 @@ RUN COMMIT_SHA=f546575109111c455354861a0567c8aa794208a2 && \
     rm -rf ../tests test ../tensorflow_binding && \
     cd ../../..
 
+# smddp: dali dataloader
+RUN pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda110
+
+# smddp: install a specific version of apex that works with dlc pytorch image
+RUN pip uninstall --yes apex
+RUN cd /root && rm -rf apex && git clone https://github.com/NVIDIA/apex && cd apex && git checkout 59d2f7ac2385f20105513cdc76010f996f731af0 && python setup.py install --cuda_ext --cpp_ext --transducer --deprecated_fused_adam --distributed_lamb
+
 WORKDIR /workspace/rnnt
 
 COPY requirements.txt .
 RUN pip install --no-cache --disable-pip-version-check -U -r requirements.txt
 
 COPY . .
+
+# smddp: some meta files for training data
+RUN mkdir /sentencepieces && cp librispeech1023* /sentencepieces
+
+RUN pip install nvtx

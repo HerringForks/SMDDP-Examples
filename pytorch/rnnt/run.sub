@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name rnn_speech_recognition
+#SBATCH --exclusive
 set -euxo pipefail
 
 # Vars without defaults
@@ -18,7 +19,8 @@ set -euxo pipefail
 : "${METADATA_DIR:=''}"
 # Other vars
 readonly _logfile_base="${LOGDIR}/${DATESTAMP}"
-readonly _cont_name=rnn_speech_recognition
+# smddp: 
+readonly _cont_name=rnn_speech_recognition_smddp_edition
 _cont_mounts="${DATADIR}:/datasets/,${LOGDIR}:/results"
 _cont_mounts+=",${METADATA_DIR}:/metadata"
 _cont_mounts+=",${SENTENCEPIECES_DIR}:/sentencepieces"
@@ -49,6 +51,9 @@ if [[ $DGXSYSTEM == "DGXA100"* ]]; then
   echo "using NCCL_TOPO_FILE ${NCCL_TOPO_FILE}"
 fi
 
+# smddp: probe gpus
+srun nvidia-modprobe -u -c=0
+
 # Run experiments
 for _experiment_index in $(seq 1 "${NEXP}"); do
     (
@@ -60,15 +65,14 @@ for _experiment_index in $(seq 1 "${NEXP}"); do
         # Clear caches
         if [ "${CLEAR_CACHES}" -eq 1 ]; then
             srun --ntasks="${SLURM_JOB_NUM_NODES}" bash -c "echo -n 'Clearing cache on ' && hostname && sync && sudo /sbin/sysctl vm.drop_caches=3"
-            srun --ntasks="${SLURM_JOB_NUM_NODES}" --container-name="${_cont_name}" python -c "
+            srun --ntasks="${SLURM_JOB_NUM_NODES}" --container-name="${_cont_name}" bash -c "cd /workspace/rnnt && python -c \"
 from mlperf import logging
-logging.log_event(key=logging.constants.CACHE_CLEAR, value=True)"
+logging.log_event(key=logging.constants.CACHE_CLEAR, value=True)\""
         fi
 
         # Run experiment
-        SEED=$(($SEED + $_experiment_index)) srun --mpi=none --ntasks="$(( SLURM_JOB_NUM_NODES * DGXNGPU ))" --ntasks-per-node="${DGXNGPU}" \
+        SEED=$(($SEED + $_experiment_index)) srun --mpi=none \
             --container-name="${_cont_name}" --container-mounts="${_cont_mounts}" \
-            ./run_and_time.sh
+            bash -c 'cd /workspace/rnnt && ./run_and_time.sh'
     ) |& tee "${_logfile_base}_${_experiment_index}.log"
 done
-
