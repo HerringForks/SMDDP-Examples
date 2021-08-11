@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name rnn_speech_recognition
+# smddp: adding this important flag to ensure correct performance
 #SBATCH --exclusive
 set -euxo pipefail
 
