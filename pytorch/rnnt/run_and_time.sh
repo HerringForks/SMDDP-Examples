@@ -32,7 +32,7 @@ set -e
 : "${EPOCH:=1}"
 : "${SEED:=2021}"
 : "${LR:=0.004}"
-# zhaoqi: no warm up allows loss to reduce quicker in the first few epochs
+# smddp: no warm up allows loss to reduce quicker in the first few epochs
 : "${WARMUP:=6}"
 : "${GRAD_ACCUMULATION_STEPS:=1}"
 : "${VAL_FREQUENCY:=1}"
