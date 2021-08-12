@@ -19,6 +19,8 @@ import torch
 from mlperf_logging import mllog
 from mlperf_logging.mllog import constants
 
+# smddp:
+import smdistributed.dataparallel.torch.distributed as dist
 
 mllogger = mllog.get_mllogger()
 
@@ -66,8 +68,9 @@ def get_rank():
     """
     Gets distributed rank or returns zero if distributed is not initialized.
     """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        rank = torch.distributed.get_rank()
+    # smddp:
+    if dist.is_available() and dist.is_initialized():
+        rank = dist.get_rank()
     else:
         rank = 0
     return rank

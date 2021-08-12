@@ -16,7 +16,9 @@ import os
 import math
 import multiprocessing
 import numpy as np
-import torch.distributed as dist
+# smddp
+#import torch.distributed as dist
+import smdistributed.dataparallel.torch.distributed as dist
 from .iterator import DaliRnntIterator
 from .pipeline import DaliPipeline
 from common.helpers import print_once

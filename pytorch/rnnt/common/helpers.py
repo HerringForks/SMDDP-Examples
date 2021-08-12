@@ -20,7 +20,9 @@ from collections import OrderedDict
 from apex import amp
 
 import torch
-import torch.distributed as dist
+# smddp:
+#import torch.distributed as dist
+import smdistributed.dataparallel.torch.distributed as dist
 
 from .metrics import word_error_rate
 import math

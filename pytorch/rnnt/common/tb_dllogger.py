@@ -20,7 +20,9 @@ import numpy as np
 
 import dllogger
 import torch
-import torch.distributed as dist
+# smddp:
+#import torch.distributed as dist
+import smdistributed.dataparallel.torch.distributed as dist
 from dllogger import StdOutBackend, JSONStreamBackend, Verbosity
 from torch.utils.tensorboard import SummaryWriter
 
