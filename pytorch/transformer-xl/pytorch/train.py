@@ -14,12 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+# Uncomment to run with pcluster steps
+# os.chdir('/workspace/transformer-xl/pytorch')
+
 import argparse
 import functools
 import itertools
 import logging
 import math
-import os
 import shutil
 import sys
 import time
@@ -40,7 +43,12 @@ try:
 except ModuleNotFoundError:
     warnings.warn('PyProf is unavailable')
 
-from torch.nn.parallel import DistributedDataParallel
+#from torch.nn.parallel import DistributedDataParallel
+import smdistributed.dataparallel.torch.distributed as dist
+from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel
+
+if not dist.is_initialized():
+    dist.init_process_group()
 
 import lamb
 import utils
@@ -253,9 +261,9 @@ def parse_args():
     val.add_argument('--eval_interval', type=int, default=5000,
                      help='Evaluation interval')
 
-    dist = parser.add_argument_group('distributed setup')
-    dist.add_argument('--local_rank',  type=int,
-                      default=os.getenv('LOCAL_RANK', 0),
+    distr = parser.add_argument_group('distributed setup')
+    distr.add_argument('--local_rank',  type=int,
+                      default=dist.get_local_rank(),
                       help='Used for multi-process training.')
 
     parser.set_defaults(**config)
@@ -694,11 +702,11 @@ def main():
         )
         print(f'{args.local_rank}: thread affinity: {affinity}')
 
-    # Initialize device and distributed backend
+    # Initialize device
     torch.cuda.set_device(args.local_rank)
     l2_promote()
     device = torch.device('cuda' if args.cuda else 'cpu')
-    utils.distributed.init_distributed(args.cuda)
+    #utils.distributed.init_distributed(args.cuda)
 
     args.work_dir = utils.exp_utils.build_work_dir_name(args.work_dir,
                                                         args.dataset,
@@ -881,12 +889,12 @@ def main():
                 opt_level=args.apex_amp_opt_level,
                 )
 
-    if args.multi_gpu == 'ddp' and torch.distributed.is_initialized():
+    if args.multi_gpu == 'ddp' and dist.is_initialized():
         para_model = DistributedDataParallel(model,
                                              device_ids=[args.local_rank],
                                              output_device=args.local_rank,
                                              broadcast_buffers=False,
-                                             find_unused_parameters=True,
+                                             find_unused_parameters=False,
                                              )
     elif args.multi_gpu == 'dp':
         if args.gpu0_bsz >= 0:

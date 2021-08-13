@@ -1,6 +1,32 @@
 # Fork Info
 This example is forked from https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/LanguageModeling/Transformer-XL.
 
+# Run Instructions on AWS P-Clusters
+```
+#1. Prepare training data: downloads wikitext-103 dataset
+bash getdata.sh
+
+#2. Build the docker image for SM DDP
+bash pytorch/scripts/docker/build.sh
+
+#3. Import and create container with enroot
+enroot import --output txl-smddp.sqsh 'dockerd:<docker_image>'
+enroot create --name pyxis_txl-smddp ./txl-smddp.sqsh
+
+#4. Uncomment the os.chdir command at the top of train.py
+
+# For the hbatch command refer to https://github.com/indhub/pcscripts
+# Important: You will need to modify the srun in pcscripts exec_inside_alloc.sh to mount the whole transformer-xl directory to the container at /workspace/transformer-xl
+#5. Start training with 1/2/4 nodes (8/16/32 GPUs) - trainbench_multinode config runs training for 500 steps
+hbatch -N <num_of_nodes> --container txl-smddp \
+  python /workspace/transformer-xl/pytorch/train.py \
+  --config_file /workspace/transformer-xl/pytorch/wt103_large.yaml 
+  --work_dir /workspace/transformer-xl/results 
+  --config trainbench_multinode 
+  --local_batch_size 16 
+  --fp16
+```
+
 # Transformer-XL For PyTorch
 
 This repository provides a script and recipe to train the Transformer-XL model
