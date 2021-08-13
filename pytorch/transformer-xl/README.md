@@ -1,3 +1,6 @@
+# Fork Info
+This example is forked from https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/LanguageModeling/Transformer-XL.
+
 # Transformer-XL For PyTorch
 
 This repository provides a script and recipe to train the Transformer-XL model
