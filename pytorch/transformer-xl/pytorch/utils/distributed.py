@@ -16,39 +16,39 @@ import os
 from contextlib import contextmanager
 
 import torch
+import smdistributed.dataparallel.torch.distributed as dist
 
+# def init_distributed(cuda):
+#     """
+#     Initializes distributed backend.
 
-def init_distributed(cuda):
-    """
-    Initializes distributed backend.
-
-    :param cuda: (bool) if True initializes nccl backend, if False initializes
-        gloo backend
-    """
-    world_size = int(os.environ.get('WORLD_SIZE', 1))
-    distributed = (world_size > 1)
-    if distributed:
-        backend = 'nccl' if cuda else 'gloo'
-        torch.distributed.init_process_group(backend=backend,
-                                             init_method='env://')
-        assert torch.distributed.is_initialized()
-    return distributed
+#     :param cuda: (bool) if True initializes nccl backend, if False initializes
+#         gloo backend
+#     """
+#     world_size = int(os.environ.get('WORLD_SIZE', 1))
+#     distributed = (world_size > 1)
+#     if distributed:
+#         backend = 'nccl' if cuda else 'gloo'
+#         torch.distributed.init_process_group(backend=backend,
+#                                              init_method='env://')
+#         assert torch.distributed.is_initialized()
+#     return distributed
 
 
 def barrier():
     """
-    Call torch.distributed.barrier() if distritubed is in use
+    Call dist.barrier() if distritubed is in use
     """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        torch.distributed.barrier()
+    if dist.is_available() and dist.is_initialized():
+        dist.barrier()
 
 
 def get_rank():
     """
     Gets distributed rank or returns zero if distributed is not initialized.
     """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        rank = torch.distributed.get_rank()
+    if dist.is_available() and dist.is_initialized():
+        rank = dist.get_rank()
     else:
         rank = 0
     return rank
@@ -59,8 +59,8 @@ def get_world_size():
     Gets total number of distributed workers or returns one if distributed is
     not initialized.
     """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        world_size = torch.distributed.get_world_size()
+    if dist.is_available() and dist.is_initialized():
+        world_size = dist.get_world_size()
     else:
         world_size = 1
     return world_size
@@ -70,28 +70,29 @@ def all_reduce_item(value, op='sum'):
     """
     All-reduces single scalar value if distributed is in use
     """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if dist.is_available() and dist.is_initialized():
         if op == 'sum' or op == 'mean':
-            dop = torch.distributed.ReduceOp.SUM
+            dop = dist.ReduceOp.SUM
         elif op == 'min':
-            dop = torch.distributed.ReduceOp.MIN
+            dop = dist.ReduceOp.MIN
         elif op == 'max':
-            dop = torch.distributed.ReduceOp.MAX
+            dop = dist.ReduceOp.MAX
         elif op == 'product':
-            dop = torch.distributed.ReduceOp.PRODUCT
+            dop = dist.ReduceOp.PRODUCT
         else:
             raise RuntimeError('Unsupported reduce op')
 
-        backend = torch.distributed.get_backend()
-        if backend == torch.distributed.Backend.NCCL:
-            device = torch.device('cuda')
-        elif backend == torch.distributed.Backend.GLOO:
-            device = torch.device('cpu')
-        else:
-            raise RuntimeError('Unsupported distributed backend')
+        #backend = dist.get_backend()
+        #if backend == dist.Backend.NCCL:
+        #    device = torch.device('cuda')
+        #elif backend == dist.Backend.GLOO:
+        #    device = torch.device('cpu')
+        #else:
+        #    raise RuntimeError('Unsupported distributed backend')
 
+        device = torch.device('cuda')
         tensor = torch.tensor(value, device=device)
-        torch.distributed.all_reduce(tensor, dop)
+        dist.all_reduce(tensor, dop)
         if op == 'mean':
             tensor /= get_world_size()
         ret = tensor.item()
