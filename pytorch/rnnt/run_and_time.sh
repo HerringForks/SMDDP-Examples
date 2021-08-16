@@ -32,6 +32,7 @@ set -e
 : "${EPOCH:=1}"
 : "${SEED:=2021}"
 : "${LR:=0.004}"
+# smddp: no warm up allows loss to reduce quicker in the first few epochs
 : "${WARMUP:=6}"
 : "${GRAD_ACCUMULATION_STEPS:=1}"
 : "${VAL_FREQUENCY:=1}"
@@ -67,22 +68,32 @@ echo "running benchmark"
 export DATASET_DIR
 export TORCH_HOME="$(pwd)/torch-model-cache"
 
-declare -a CMD
-if [ -n "${SLURM_LOCALID-}" ]; then
-  # Mode 1: Slurm launched a task for each GPU and set some envvars; no need for parallel launch
-  if [ "${SLURM_NTASKS}" -gt "${SLURM_JOB_NUM_NODES}" ]; then
-    CMD=( './bind.sh' '--' 'python' '-u' )
-  else
-    CMD=( 'python' '-u' )
-  fi
-else
-  # Mode 2: Single-node Docker; need to launch tasks with Pytorch's distributed launch
-  # TODO: use bind.sh instead of bind_launch.py
-  #       torch.distributed.launch only accepts Python programs (not bash scripts) to exec
-  CMD=( 'python' '-u' '-m' 'bind_launch' "--nsockets_per_node=${DGXNSOCKET}" \
-    "--ncores_per_socket=${DGXSOCKETCORES}" "--nproc_per_node=${DGXNGPU}" )
-  [ "$MEMBIND" = false ] &&  CMD+=( "--no_membind" )
-fi
+#declare -a CMD
+#if [ -n "${SLURM_LOCALID-}" ]; then
+#  # Mode 1: Slurm launched a task for each GPU and set some envvars; no need for parallel launch
+#  if [ "${SLURM_NTASKS}" -gt "${SLURM_JOB_NUM_NODES}" ]; then
+#    CMD=( './bind.sh' '--' 'python' '-u' )
+#  else
+#    CMD=( 'python' '-u' )
+#  fi
+#else
+#  # Mode 2: Single-node Docker; need to launch tasks with Pytorch's distributed launch
+#  # TODO: use bind.sh instead of bind_launch.py
+#  #       torch.distributed.launch only accepts Python programs (not bash scripts) to exec
+#  CMD=( 'python' '-u' '-m' 'bind_launch' "--nsockets_per_node=${DGXNSOCKET}" \
+#    "--ncores_per_socket=${DGXSOCKETCORES}" "--nproc_per_node=${DGXNGPU}" )
+#  [ "$MEMBIND" = false ] &&  CMD+=( "--no_membind" )
+#fi
+
+# smddp: use torch.distributed.launch
+PROC_PER_NODE=8
+WORLD_SIZE_JOB=$SLURM_NTASKS
+RANK_NODE=$SLURM_NODEID
+MASTER_ADDR_JOB=$SLURM_SUBMIT_HOST
+MASTER_PORT_JOB="12234"
+echo "cmd is ----!"
+CMD=(" python -m torch.distributed.launch --nproc_per_node=${PROC_PER_NODE} --nnodes=${WORLD_SIZE_JOB} --node_rank=${RANK_NODE} --master_addr=${MASTER_ADDR_JOB} --master_port=${MASTER_PORT_JOB} --use_env --no_python ./bind.sh -- python -u ")
+
 echo "${CMD[@]}"
 
 if [ "$LOGGER" = "apiLog.sh" ];
@@ -104,6 +115,17 @@ then
   fi
 fi
 
+# smddp: echo some slurm info
+echo "slurm ntasks ${SLURM_NTASKS}"
+echo "slum node id${SLURM_NODEID}"
+echo "slurm submit host ${SLURM_SUBMIT_HOST}"
+
+# smddp: communication flags
+export OMPI_MCA_btl_tcp_if_exclude="docker0,lo"
+export PMIX_MCA_gds=hash
+export SAGEMAKER_INSTANCE_TYPE="ml.p4d.24xlarge"
+export NCCL_SOCKET_IFNAME="^lo,docker"
+export FI_EFA_USE_DEVICE_RDMA="1"
 
 mkdir -p /results
 # run training
@@ -124,7 +146,7 @@ ARGS="train.py \
   --ema=$EMA \
   --output_dir ${OUTPUT_DIR} \
   --model_config=$MODELCONFIG \
-  --seed $SEED \
+  --seed 28400 \
   --dataset_dir=${DATASET_DIR} \
   --cudnn_benchmark \
   --dali_device $DALIDEVICE \
@@ -135,7 +157,8 @@ ARGS="train.py \
   --prediction_frequency=1000000 \
   --weights_init_scale=${WEIGHTS_INIT_SCALE} \
   --val_manifests=${VAL_MANIFESTS} \
-  --train_manifests ${TRAIN_MANIFESTS}"
+  --train_manifests ${TRAIN_MANIFESTS} \
+  --save_at_the_end"
 
 if [ $BUCKET -ne 0 ]; then
   ARGS="${ARGS} --num_buckets=${BUCKET}"
@@ -187,7 +210,15 @@ fi
 [ "${JIT_TENSOR_FORMATION}" = true ] && ARGS+=" --jit_tensor_formation"
 [ "${DALI_DONT_USE_MMAP}" = true ] && ARGS+=" --dali_dont_use_mmap"
 
-${LOGGER:-} "${CMD[@]}" $ARGS
+#${LOGGER:-} "${CMD[@]}" $ARGS
+# smddp: custom cmd, and we do not need the logger
+FINAL_CMD="${CMD} ${ARGS}"
+echo "final cmd is ${FINAL_CMD}"
+echo "logger is ${LOGGER}"
+echo "-----"
+
+${FINAL_CMD}
+
 ret_code=$?
 
 set +x
@@ -205,4 +236,3 @@ result=$(( $end - $start ))
 result_name="RNN_SPEECH_RECOGNITION"
 
 echo "RESULT,$result_name,,$result,nvidia,$start_fmt"
-

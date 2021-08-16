@@ -18,6 +18,11 @@ import os
 import random
 import time
 
+# smddp: fix for egg cannot extract issue
+os.environ['PYTHON_EGG_CACHE'] = '/tmp'
+# smddp: fix for RuntimeError: cannot cache function '__shear_dense': no locator available for file '/opt/conda/lib/python3.6/site-packages/librosa/util/utils.py'
+os.environ[ 'NUMBA_CACHE_DIR' ] = '/tmp/'
+
 import torch
 import multiprocessing
 import numpy as np
@@ -48,6 +53,8 @@ from rnnt.rnnt_graph import RNNTGraph
 
 from mlperf import logging
 
+# smddp: nvtx can be useful for profiling
+#import nvtx
 
 # TODO Eval batch size
 
@@ -268,6 +275,8 @@ def evaluate(epoch, step, val_loader, val_feat_proc, detokenize,
     return wer
 
 
+# smddp: nvtx decorator
+#@nvtx.annotate("train step", color="purple")
 def train_step( model, loss_fn, args, batch_size, feats, feat_lens, txt, txt_lens, optimizer, grad_scaler, 
                 meta_data, train_loader, rnnt_graph, copy_stream, pred_stream):
     # sync free loss
@@ -372,6 +381,9 @@ def main():
         torch.cuda.set_device(args.local_rank)
         dist.init_process_group(backend='nccl', init_method='env://')
         world_size = dist.get_world_size()
+        # smddp: rank info
+        print('local_rank is, ', args.local_rank)
+        print('world size is, ', dist.get_world_size() )
         print_once(f'Distributed training with {world_size} GPUs\n')
     else:
         world_size = 1
@@ -503,6 +515,8 @@ def main():
             min_lr=args.min_lr, exp_gamma=args.lr_exp_gamma, dist_lamb=args.dist_lamb)
 
     if not args.dist_lamb and multi_gpu:
+        # smddp: are we using ddp?
+        print('Using DDP here!')
         model = DistributedDataParallel(model)
 
     print_once('Setting up datasets...')
@@ -962,11 +976,15 @@ def main():
         logging.log_end(logging.constants.RUN_STOP, metadata={'status': 'aborted'})
 
     if epoch == args.epochs:
+        # smddp: 
+        print('Evaluating the model at the end')
         evaluate(epoch, step, val_loader, val_feat_proc, tokenizer.detokenize,
                  ema_model, loss_fn, greedy_decoder, args.amp_level)
 
     flush_log()
     if args.save_at_the_end:
+        # smddp:
+        print('Saving the model at the end')
         checkpointer.save(model, ema_model, optimizer, epoch, step, best_wer)
 
 

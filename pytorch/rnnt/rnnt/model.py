@@ -65,7 +65,8 @@ class StackTime(nn.Module):
             x_lens = (x_lens.int() + self.factor - 1) // self.factor
             return [y0, y1], x_lens
 
-@torch.jit.script
+# smddp: this is not working in our base image
+#@torch.jit.script
 def jit_relu_dropout(x, prob) :
     # type: (Tensor, float) -> Tensor
     x = torch.nn.functional.relu(x)

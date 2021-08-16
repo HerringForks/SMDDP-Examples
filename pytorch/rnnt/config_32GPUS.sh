@@ -1,5 +1,5 @@
 ## System config params
-export DGXNNODES=16
+export DGXNNODES=4
 export DGXSYSTEM=$(basename $(readlink -f ${BASH_SOURCE[0]}) | sed 's/^config_//' | sed 's/\.sh$//' )
 export DGXNGPU=8
 export DGXSOCKETCORES=64
@@ -10,11 +10,10 @@ export DGXHT=2         # HT is on is 2, HT off is 1
 export DATADIR="/raid/datasets/rnnt/"
 export METADATA_DIR="/lustre/fsw/mlperf-ci/tokenized/"
 export SENTENCEPIECES_DIR="/lustre/fsw/mlperf-ci/sentpiece"
-export BATCHSIZE=16
+export BATCHSIZE=48
 export EVAL_BATCHSIZE=22
 export GRAD_ACCUMULATION_STEPS=1
-export WALLTIME=01:00:00
-export VAL_FREQUENCY=1
+export WALLTIME=04:00:00
 export MAX_SYMBOL=300
 export DATA_CPU_THREADS=8
 
@@ -30,17 +29,15 @@ export AMP_LVL=2
 export BUFFER_PREALLOC=true
 export VECTORIZED_SA=true
 export EMA_UPDATE_TYPE=fp16
-export DIST_LAMB=true
-export MULTILAYER_LSTM=false
+export DIST_LAMB=false
+export MULTILAYER_LSTM=true
 export ENABLE_PREFETCH=true
+export BATCH_SPLIT_FACTOR=1
+export TOKENIZED_TRANSCRIPT=true
 export VECTORIZED_SAMPLER=true
 export DIST_SAMPLER=true
-export NUM_CG=50
-export TOKENIZED_TRANSCRIPT=true
+export MIN_SEQ_SPLIT_LEN=20
 export APEX_MLP=true
-export LOG_FREQUENCY=1000
+export PRE_SORT_FOR_SEQ_SPLIT=true
+export LOG_FREQUENCY=20
 export JIT_TENSOR_FORMATION=true
-
-## network flag
-export SBATCH_NETWORK=sharp
-export NCCL_COLLNET_ENABLE=1
