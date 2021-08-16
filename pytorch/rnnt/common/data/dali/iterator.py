@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import torch
-import torch.distributed as dist
+# smddp:
+#import torch.distributed as dist
+import smdistributed.dataparallel.torch.distributed as dist
 import numpy as np
 from common.helpers import print_once
 from common.text import _clean_text, punctuation_map

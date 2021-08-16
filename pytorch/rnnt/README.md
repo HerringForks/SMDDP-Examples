@@ -1,6 +1,24 @@
 # Fork Info
 This example is forked from https://github.com/mlcommons/training_results_v1.0/tree/master/NVIDIA/benchmarks/rnnt/implementations/pytorch.
 
+# Run Instructions on AWS P-Clusters
+```
+# prepare training data
+
+# build the docker image for SMDDP
+
+# import the docker image with enroot
+enroot import --output rnnt-smddp.sqsh 'dockerd:<docker_image>'
+
+# unpack the imported image
+enroot create --name pyxis_rnnt-smddp ./rnnt-smddp.sqsh
+
+# start training with 1/2/4 nodes (8/16/32 GPUs) 
+# notice: some dir's in the commands need to be changed
+# for the hbatch command refer to https://github.com/indhub/pcscripts
+hbatch -N <num_of_nodes> --container rnnt-smddp python /workspace/rnnt/train.py --batch_size=48 --beta1=0.9 --beta2=0.999 --max_duration=16.7 --val_batch_size=44 --target=0.058 --lr=0.007 --min_lr=1e-5 --lr_exp_gamma=0.939 --epochs=80 --warmup_epochs=6 --hold_epochs=33 --epochs_this_job=0 --ema=0.995 --output_dir ~/rnnt_local/results/ --model_config=/workspace/rnnt/configs/baseline_v3-1023sp.yaml --seed 28400 --dataset_dir=/fsx/datasets/LibriSpeech/ --cudnn_benchmark --dali_device gpu --weight_decay=1e-3 --log_frequency=20 --val_frequency=1 --grad_accumulation_steps=1 --prediction_frequency=1000000 --weights_init_scale=0.5 --val_manifests=/fsx/tokenized/librispeech-dev-clean-wav-tokenized.pkl --train_manifests /fsx/tokenized/librispeech-train-clean-100-wav-tokenized.pkl /fsx/tokenized/librispeech-train-clean-360-wav-tokenized.pkl /fsx/tokenized/librispeech-train-other-500-wav-tokenized.pkl --save_at_the_end --max_symbol_per_sample=300 --apex_transducer_loss=fp16 --fuse_relu_dropout --multi_tensor_ema --batch_eval_mode cg_unroll_pipeline --apex_transducer_joint=pack --buffer_pre_alloc --ema_update_type=fp16 --amp_level 2 --data_cpu_threads 8 --batch_split_factor 1 --min_seq_split_len 20 --vectorized_sa --multilayer_lstm --enable_prefetch --tokenized_transcript --vectorized_sampler --dist_sampler --apex_mlp --pre_sort_for_seq_split --jit_tensor_formation
+```
+
 # 1. Problem 
 Speech recognition accepts raw audio samples and produces a corresponding text transcription.
 

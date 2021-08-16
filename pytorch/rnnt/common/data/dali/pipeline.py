@@ -19,6 +19,8 @@ import multiprocessing
 import numpy as np
 import torch
 import math
+# smddp:
+import smdistributed.dataparallel.torch.distributed as dist
 
 class PipelineParams:
     def __init__(
@@ -86,9 +88,10 @@ class DaliPipeline(nvidia.dali.pipeline.Pipeline):
 
         self._dali_init_log(locals())
 
-        if torch.distributed.is_initialized() and not sampler.dist_sampler:
-            shard_id = torch.distributed.get_rank()
-            n_shards = torch.distributed.get_world_size()
+        
+        if dist.is_initialized() and not sampler.dist_sampler:
+            shard_id = dist.get_rank()
+            n_shards = dist.get_world_size()
         else:
             shard_id = 0
             n_shards = 1
@@ -228,8 +231,8 @@ class DaliPipeline(nvidia.dali.pipeline.Pipeline):
 
     @staticmethod
     def _dali_init_log(args: dict):
-        if (not torch.distributed.is_initialized() or (
-                torch.distributed.is_initialized() and torch.distributed.get_rank() == 0)):  # print once
+        if (not dist.is_initialized() or (
+                dist.is_initialized() and dist.get_rank() == 0)):  # print once
             max_len = max([len(ii) for ii in args.keys()])
             fmt_string = '\t%' + str(max_len) + 's : %s'
             print('Initializing DALI with parameters:')

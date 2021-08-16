@@ -16,6 +16,8 @@ import os
 
 import numpy as np
 import torch
+# smddp:
+import smdistributed.dataparallel.torch.distributed as dist
 
 from common.helpers import print_once
 
@@ -80,7 +82,7 @@ class SimpleSampler:
         self.files, self.labels = [], []
         self.dataset_size = None
         self.dist_sampler = dist_sampler
-        self.rank = torch.distributed.get_rank() if torch.distributed.is_initialized() else 0
+        self.rank = dist.get_rank() if dist.is_initialized() else 0
         self.config_data = config_data
 
     def write_file_list(self, names, labels):

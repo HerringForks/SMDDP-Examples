@@ -18,17 +18,30 @@ import os
 import random
 import time
 
+# smddp: fix for egg cannot extract issue
+os.environ['PYTHON_EGG_CACHE'] = '/tmp'
+# smddp: fix for RuntimeError: cannot cache function '__shear_dense': no locator available for file '/opt/conda/lib/python3.6/site-packages/librosa/util/utils.py'
+os.environ[ 'NUMBA_CACHE_DIR' ] = '/tmp/'
+os.environ["OMP_NUM_THREADS"] = str(1)
+
 import torch
 import multiprocessing
 import numpy as np
-import torch.distributed as dist
+#import torch.distributed as dist
 from apex import amp
 from torch.cuda.amp import GradScaler
 from apex.optimizers import FusedLAMB
-from apex.parallel import DistributedDataParallel
+#from apex.parallel import DistributedDataParallel
 from apex.contrib.optimizers.distributed_fused_lamb import DistributedFusedLAMB
 import amp_C
 import math
+
+# smddp:
+import smdistributed.dataparallel.torch.distributed as dist
+from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel
+if not dist.is_initialized():
+    print('Initiating process group!')
+    dist.init_process_group()
 
 from common import helpers
 from common.data.dali import sampler as dali_sampler
@@ -48,6 +61,8 @@ from rnnt.rnnt_graph import RNNTGraph
 
 from mlperf import logging
 
+# smddp: nvtx can be useful for profiling
+#import nvtx
 
 # TODO Eval batch size
 
@@ -69,7 +84,10 @@ def parse_args():
     training.add_argument('--amp_level', default=1, type=int, choices=[0, 1, 2, 3],
                           help='APEX AMP optimization level')
     training.add_argument('--seed', default=None, type=int, help='Random seed')
-    training.add_argument('--local_rank', default=os.getenv('LOCAL_RANK', 0), type=int,
+    # smddp:
+    #training.add_argument('--local_rank', default=os.getenv('LOCAL_RANK', 0), type=int,
+    #                      help='GPU id used for distributed training')
+    training.add_argument('--local_rank', default=dist.get_local_rank(), type=int,
                           help='GPU id used for distributed training')
     training.add_argument('--target', default=0.058, type=float, help='Target WER accuracy')
     training.add_argument('--apex_transducer_loss', default=None, type=str, choices=['fp16', 'fp32'], 
@@ -268,6 +286,8 @@ def evaluate(epoch, step, val_loader, val_feat_proc, detokenize,
     return wer
 
 
+# smddp: nvtx decorator
+#@nvtx.annotate("train step", color="purple")
 def train_step( model, loss_fn, args, batch_size, feats, feat_lens, txt, txt_lens, optimizer, grad_scaler, 
                 meta_data, train_loader, rnnt_graph, copy_stream, pred_stream):
     # sync free loss
@@ -366,12 +386,16 @@ def main():
 
     torch.backends.cudnn.benchmark = args.cudnn_benchmark
 
+    # smddp: set multi_gpu to True
     # set up distributed training
-    multi_gpu = args.dist_lamb or (int(os.environ.get('WORLD_SIZE', 1)) > 1)
+    multi_gpu = True #args.dist_lamb or (int(os.environ.get('WORLD_SIZE', 1)) > 1)
     if multi_gpu:
         torch.cuda.set_device(args.local_rank)
-        dist.init_process_group(backend='nccl', init_method='env://')
+        #dist.init_process_group(backend='nccl', init_method='env://')
         world_size = dist.get_world_size()
+        # smddp: rank info
+        print('local_rank is, ', args.local_rank)
+        print('world size is, ', dist.get_world_size() )
         print_once(f'Distributed training with {world_size} GPUs\n')
     else:
         world_size = 1
@@ -503,6 +527,8 @@ def main():
             min_lr=args.min_lr, exp_gamma=args.lr_exp_gamma, dist_lamb=args.dist_lamb)
 
     if not args.dist_lamb and multi_gpu:
+        # smddp: are we using ddp?
+        print('Using DDP here!')
         model = DistributedDataParallel(model)
 
     print_once('Setting up datasets...')
@@ -646,10 +672,10 @@ def main():
 
     logging.log_end(logging.constants.INIT_STOP)
     if multi_gpu:
-        torch.distributed.barrier()
+        dist.barrier()
     logging.log_start(logging.constants.RUN_START)
     if multi_gpu:
-        torch.distributed.barrier()
+        dist.barrier()
 
     if args.pre_sort_for_seq_split and not args.vectorized_sampler:
         raise NotImplementedError("Pre sort only works with vectorized sampler for now")
@@ -962,11 +988,15 @@ def main():
         logging.log_end(logging.constants.RUN_STOP, metadata={'status': 'aborted'})
 
     if epoch == args.epochs:
+        # smddp: 
+        print('Evaluating the model at the end')
         evaluate(epoch, step, val_loader, val_feat_proc, tokenizer.detokenize,
                  ema_model, loss_fn, greedy_decoder, args.amp_level)
 
     flush_log()
     if args.save_at_the_end:
+        # smddp:
+        print('Saving the model at the end')
         checkpointer.save(model, ema_model, optimizer, epoch, step, best_wer)
 
 
