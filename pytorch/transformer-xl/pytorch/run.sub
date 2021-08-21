@@ -1,26 +1,27 @@
 #!/bin/bash
-#SBATCH -N 8                       # number of nodes
+#SBATCH --wait-all-nodes=1         # wait for all nodes
+#SBATCH -N 2                       # number of nodes
 #SBATCH -t 4:00:00                 # wall time
 #SBATCH -J "transformer-xl_pyt"    # job name
-#SBATCH --ntasks-per-node=16       # tasks per node
+#SBATCH --gres=gpu:8               # num gpus per node
+#SBATCH --ntasks-per-node=1        # tasks per node
 #SBATCH --exclusive                # exclusive node access
 #SBATCH --mem=0                    # all mem avail
-#SBATCH --mail-type=FAIL           # only send email on failure
 #SBATCH --overcommit               # Needed for pytorch
 
 # Configure the multinode script
 SCRIPT="run_multinode_wt103_large.sh"
 
 # Configure workspace in the file system
-WORK_DIR="/gpfs/fs1/${USER}/transformer-xl_pyt"
+WORK_DIR="<PATH TO>/SMDDP-Examples/pytorch/transformer-xl"
 CONT_WORK_DIR="/workspace/transformer-xl"
 
 # Configure container and mounting paths
-CONT="<YOUR DOCKER REGISTRY>/transformer-xl:latest"
-MOUNTS="${WORK_DIR}/data:${CONT_WORK_DIR}/data,${WORK_DIR}/results:${CONT_WORK_DIR}/results"
+CONT="txl-nccl"
+MOUNTS="${WORK_DIR}:${CONT_WORK_DIR}"
 
 # Create directory for the results
-srun --ntasks="${SLURM_JOB_NUM_NODES}" --ntasks-per-node=1 mkdir -p "${WORK_DIR}/results"
+# srun --ntasks="${SLURM_JOB_NUM_NODES}" --ntasks-per-node=1 mkdir -p "${WORK_DIR}/results"
 
 # Overwrite default parameters in the script
 EXTRA_TRAIN_PARAMS=""
@@ -63,10 +64,13 @@ if [ -n "$CONFIG" ]; then
    EXTRA_EVAL_PARAMS+="--config ${CONFIG} "
 fi
 
+# Probe GPUs
+srun nvidia-modprobe -u -c=0
+
 if [[ $1 == 'train' ]] || [[ $1 == 'all' ]]; then
    # Run training
    srun --mpi=none \
-      --container-image="${CONT}" \
+      --container-name="${CONT}" \
       --container-mounts="${MOUNTS}" \
       bash "${SCRIPT}" train \
       --work_dir ${CONT_WORK_DIR}/results/${SLURM_JOB_ID} \
