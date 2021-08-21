@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:20.06-py3
+# Use PT 1.8.1 DLC for SMDDP
+ARG FROM_IMAGE_NAME=763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:1.8.1-gpu-py36-cu111-ubuntu18.04
 FROM ${FROM_IMAGE_NAME}
 
 ENV LANG C.UTF-8
@@ -26,4 +27,4 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir git+https://github.com/NVIDIA/dllogger.git#egg=dllogger
 
-ADD pytorch/ /workspace/transformer-xl/pytorch/
+# ADD pytorch/ /workspace/transformer-xl/pytorch/
