@@ -24,17 +24,7 @@ def run_training_smddp(dataset, params):
     if gpus:
         tf.config.experimental.set_visible_devices(gpus[dist.local_rank()], 'GPU')
 
-    learning_rate = PiecewiseConstantWithWarmupSchedule(
-        init_value=params.init_learning_rate,
-        # scale boundaries from epochs to steps
-        boundaries=[
-            int(b * dataset.train_size / params.global_train_batch_size)
-            for b in params.learning_rate_boundaries
-        ],
-        values=params.learning_rate_values,
-        # scale only by local BS as distributed strategy later scales it by number of replicas
-        scale=params.train_batch_size
-    )
+    learning_rate = 0.04
 
     optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=params.momentum)
 
@@ -45,7 +35,7 @@ def run_training_smddp(dataset, params):
     mask_rcnn_model.compile(optimizer=optimizer)
 
     # distributed strategy splits data between instances so we need global BS
-    train_data = dataset.train_fn(batch_size=params.global_train_batch_size)
+    train_data = dataset.train_fn(batch_size=params.train_batch_size)
 
     if params.eagerly:
         mask_rcnn_model.run_eagerly = True
@@ -54,7 +44,7 @@ def run_training_smddp(dataset, params):
     mask_rcnn_model.fit(
         x=train_data,
         epochs=params.epochs,
-        steps_per_epoch=params.steps_per_epoch or (dataset.train_size // params.global_train_batch_size),
+        steps_per_epoch=params.steps_per_epoch,
         callbacks=list(create_callbacks(params)),
         verbose=0
     )
