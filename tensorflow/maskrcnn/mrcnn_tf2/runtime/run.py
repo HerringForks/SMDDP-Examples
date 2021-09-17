@@ -2,8 +2,11 @@ import logging
 import os
 
 import tensorflow as tf
-import smdistributed.dataparallel.tensorflow.keras as dist
 import dllogger
+
+import smdistributed.dataparallel.tensorflow.keras as dist
+dist.init()
+print("Init done", dist.rank(), dist.size(), dist.local_size())
 
 from mrcnn_tf2.model.mask_rcnn import MaskRCNN
 from mrcnn_tf2.runtime.callbacks import DLLoggerMetricsCallback, DLLoggerPerfCallback, PretrainedWeightsLoadingCallback
