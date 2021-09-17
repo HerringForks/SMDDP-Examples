@@ -16,7 +16,7 @@ import logging
 import os
 from argparse import Namespace
 
-from mrcnn_tf2.runtime.run import run_training, run_inference, run_evaluation
+from mrcnn_tf2.runtime.run import run_training, run_training_smddp, run_inference, run_evaluation
 from mrcnn_tf2.utils.dllogger import LoggingBackend
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -58,7 +58,7 @@ def main():
     dataset = Dataset(params)
 
     if params.mode == 'train':
-        run_training(dataset, params)
+        run_training_smddp(dataset, params)
     if params.mode == 'eval':
         run_evaluation(dataset, params)
     if params.mode == 'infer':

@@ -2,6 +2,7 @@ import logging
 import os
 
 import tensorflow as tf
+import smdistributed.dataparallel.tensorflow.keras as dist
 import dllogger
 
 from mrcnn_tf2.model.mask_rcnn import MaskRCNN
@@ -9,6 +10,51 @@ from mrcnn_tf2.runtime.callbacks import DLLoggerMetricsCallback, DLLoggerPerfCal
 from mrcnn_tf2.runtime.evaluation import evaluate
 from mrcnn_tf2.runtime.learning_rate import PiecewiseConstantWithWarmupSchedule
 from mrcnn_tf2.runtime.weights_mapping import WEIGHTS_MAPPING
+
+
+def run_training_smddp(dataset, params):
+    setup(params)
+
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    if gpus:
+        tf.config.experimental.set_visible_devices(gpus[dist.local_rank()], 'GPU')
+
+    learning_rate = PiecewiseConstantWithWarmupSchedule(
+        init_value=params.init_learning_rate,
+        # scale boundaries from epochs to steps
+        boundaries=[
+            int(b * dataset.train_size / params.global_train_batch_size)
+            for b in params.learning_rate_boundaries
+        ],
+        values=params.learning_rate_values,
+        # scale only by local BS as distributed strategy later scales it by number of replicas
+        scale=params.train_batch_size
+    )
+
+    optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=params.momentum)
+
+    optimizer = dist.DistributedOptimizer(optimizer, backward_passes_per_step=1, average_aggregated_gradients=True)
+
+    mask_rcnn_model = create_model(params)
+
+    mask_rcnn_model.compile(optimizer=optimizer)
+
+    # distributed strategy splits data between instances so we need global BS
+    train_data = dataset.train_fn(batch_size=params.global_train_batch_size)
+
+    if params.eagerly:
+        mask_rcnn_model.run_eagerly = True
+        logging.warning('Model is running in eager mode which might reduce performance')
+
+    mask_rcnn_model.fit(
+        x=train_data,
+        epochs=params.epochs,
+        steps_per_epoch=params.steps_per_epoch or (dataset.train_size // params.global_train_batch_size),
+        callbacks=list(create_callbacks(params)),
+        verbose=0
+    )
 
 
 def run_training(dataset, params):
