@@ -18,11 +18,11 @@ from mrcnn_tf2.runtime.weights_mapping import WEIGHTS_MAPPING
 def run_training_smddp(dataset, params):
     setup(params)
 
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
-    if gpus:
-        tf.config.experimental.set_visible_devices(gpus[dist.local_rank()], 'GPU')
+    #gpus = tf.config.experimental.list_physical_devices('GPU')
+    #for gpu in gpus:
+    #    tf.config.experimental.set_memory_growth(gpu, True)
+    #if gpus:
+    #    tf.config.experimental.set_visible_devices(gpus[dist.local_rank()], 'GPU')
 
     learning_rate = 0.04
 
