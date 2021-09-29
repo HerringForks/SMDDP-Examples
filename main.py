@@ -46,7 +46,7 @@ import image_classification.logger as log
 
 from image_classification.smoothing import LabelSmoothing
 from image_classification.mixup import NLLMultiLabelSmooth, MixUpWrapper
-from image_classification.dataloaders import *
+from image_classification.dataloaders import DATA_BACKEND_CHOICES, get_pytorch_train_loader, get_pytorch_val_loader
 from image_classification.training import *
 from image_classification.utils import *
 from image_classification.models import (
@@ -82,11 +82,11 @@ def add_parser_arguments(parser, skip_arch=False):
     parser.add_argument(
         "--data-backend",
         metavar="BACKEND",
-        default="dali-cpu",
+        default="pytorch",
         choices=DATA_BACKEND_CHOICES,
         help="data backend: "
         + " | ".join(DATA_BACKEND_CHOICES)
-        + " (default: dali-cpu)",
+        + " (default: pytorch)",
     )
     parser.add_argument(
         "--interpolation",
@@ -322,6 +322,12 @@ def add_parser_arguments(parser, skip_arch=False):
         required=False,
         help="number of classes"
     )
+    parser.add_argument(
+        "--local_rank",
+        type=int,
+        default=None,
+        required=False
+    )
 
 
 def prepare_for_training(args, model_args, model_arch):
@@ -366,6 +372,7 @@ def prepare_for_training(args, model_args, model_arch):
         batch_size_multiplier = 1
     else:
         tbs = args.world_size * args.batch_size
+        args.optimizer_batch_size *= int(args.world_size / 8)
         if args.optimizer_batch_size % tbs != 0:
             print(
                 "Warning: simulated batch size {} is not divisible by actual batch size {}".format(
@@ -444,15 +451,15 @@ def prepare_for_training(args, model_args, model_arch):
     if args.data_backend == "pytorch":
         get_train_loader = get_pytorch_train_loader
         get_val_loader = get_pytorch_val_loader
-    elif args.data_backend == "dali-gpu":
-        get_train_loader = get_dali_train_loader(dali_cpu=False)
-        get_val_loader = get_dali_val_loader()
-    elif args.data_backend == "dali-cpu":
-        get_train_loader = get_dali_train_loader(dali_cpu=True)
-        get_val_loader = get_dali_val_loader()
-    elif args.data_backend == "syntetic":
-        get_val_loader = get_syntetic_loader
-        get_train_loader = get_syntetic_loader
+    # elif args.data_backend == "dali-gpu":
+    #     get_train_loader = get_dali_train_loader(dali_cpu=False)
+    #     get_val_loader = get_dali_val_loader()
+    # elif args.data_backend == "dali-cpu":
+    #     get_train_loader = get_dali_train_loader(dali_cpu=True)
+    #     get_val_loader = get_dali_val_loader()
+    # elif args.data_backend == "syntetic":
+    #     get_val_loader = get_syntetic_loader
+    #     get_train_loader = get_syntetic_loader
     else:
         print("Bad databackend picked")
         exit(1)
