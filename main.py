@@ -33,20 +33,21 @@ from copy import deepcopy
 import signal
 
 import torch.backends.cudnn as cudnn
-import torch.distributed as dist
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-from torch.nn.parallel import DistributedDataParallel as DDP
+
+import smdistributed.dataparallel.torch.distributed as dist
+dist.init_process_group()
 
 import image_classification.logger as log
 
 from image_classification.smoothing import LabelSmoothing
 from image_classification.mixup import NLLMultiLabelSmooth, MixUpWrapper
-from image_classification.dataloaders import *
+from image_classification.dataloaders import DATA_BACKEND_CHOICES, get_pytorch_train_loader, get_pytorch_val_loader
 from image_classification.training import *
 from image_classification.utils import *
 from image_classification.models import (
@@ -82,11 +83,11 @@ def add_parser_arguments(parser, skip_arch=False):
     parser.add_argument(
         "--data-backend",
         metavar="BACKEND",
-        default="dali-cpu",
+        default="pytorch",
         choices=DATA_BACKEND_CHOICES,
         help="data backend: "
         + " | ".join(DATA_BACKEND_CHOICES)
-        + " (default: dali-cpu)",
+        + " (default: pytorch)",
     )
     parser.add_argument(
         "--interpolation",
@@ -327,9 +328,9 @@ def add_parser_arguments(parser, skip_arch=False):
 def prepare_for_training(args, model_args, model_arch):
 
     args.distributed = False
-    if "WORLD_SIZE" in os.environ:
-        args.distributed = int(os.environ["WORLD_SIZE"]) > 1
-        args.local_rank = int(os.environ["LOCAL_RANK"])
+    if dist.get_world_size() > 1:
+        args.distributed = True
+        args.local_rank = dist.get_local_rank()
     else:
         args.local_rank = 0
 
@@ -337,10 +338,10 @@ def prepare_for_training(args, model_args, model_arch):
     args.world_size = 1
 
     if args.distributed:
-        args.gpu = args.local_rank % torch.cuda.device_count()
+        args.gpu = dist.get_local_rank()
         torch.cuda.set_device(args.gpu)
-        dist.init_process_group(backend="nccl", init_method="env://")
-        args.world_size = torch.distributed.get_world_size()
+        # dist.init_process_group(backend="nccl", init_method="env://")
+        args.world_size = dist.get_world_size()
 
     if args.seed is not None:
         print("Using seed = {}".format(args.seed))
@@ -366,6 +367,7 @@ def prepare_for_training(args, model_args, model_arch):
         batch_size_multiplier = 1
     else:
         tbs = args.world_size * args.batch_size
+        args.optimizer_batch_size *= int(args.world_size / 8)
         if args.optimizer_batch_size % tbs != 0:
             print(
                 "Warning: simulated batch size {} is not divisible by actual batch size {}".format(
@@ -444,15 +446,15 @@ def prepare_for_training(args, model_args, model_arch):
     if args.data_backend == "pytorch":
         get_train_loader = get_pytorch_train_loader
         get_val_loader = get_pytorch_val_loader
-    elif args.data_backend == "dali-gpu":
-        get_train_loader = get_dali_train_loader(dali_cpu=False)
-        get_val_loader = get_dali_val_loader()
-    elif args.data_backend == "dali-cpu":
-        get_train_loader = get_dali_train_loader(dali_cpu=True)
-        get_val_loader = get_dali_val_loader()
-    elif args.data_backend == "syntetic":
-        get_val_loader = get_syntetic_loader
-        get_train_loader = get_syntetic_loader
+    # elif args.data_backend == "dali-gpu":
+    #     get_train_loader = get_dali_train_loader(dali_cpu=False)
+    #     get_val_loader = get_dali_val_loader()
+    # elif args.data_backend == "dali-cpu":
+    #     get_train_loader = get_dali_train_loader(dali_cpu=True)
+    #     get_val_loader = get_dali_val_loader()
+    # elif args.data_backend == "syntetic":
+    #     get_val_loader = get_syntetic_loader
+    #     get_train_loader = get_syntetic_loader
     else:
         print("Bad databackend picked")
         exit(1)
@@ -483,7 +485,7 @@ def prepare_for_training(args, model_args, model_arch):
         memory_format=memory_format,
     )
 
-    if not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0:
+    if not dist.is_initialized() or dist.get_rank() == 0:
         logger = log.Logger(
             args.print_freq,
             [
@@ -534,7 +536,7 @@ def prepare_for_training(args, model_args, model_arch):
     )
 
     if args.distributed:
-        model_and_loss.distributed(args.gpu)
+        model_and_loss.distributed()
 
     model_and_loss.load_model_state(model_state)
     if (ema is not None) and (model_state_ema is not None):
@@ -581,7 +583,7 @@ def main(args, model_args, model_arch):
         checkpoint_filename=args.checkpoint_filename,
     )
     exp_duration = time.time() - exp_start_time
-    if not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0:
+    if not dist.is_initialized() or dist.get_rank() == 0:
         logger.end()
     print("Experiment ended")
 

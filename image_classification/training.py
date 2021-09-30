@@ -41,7 +41,8 @@ import dllogger
 
 from .optimizers import get_sgd_optimizer, get_rmsprop_optimizer
 from .models.common import EMA
-from torch.nn.parallel import DistributedDataParallel as DDP
+import smdistributed.dataparallel.torch.distributed as dist
+from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel as DDP
 from torch.cuda.amp import autocast
 
 ACC_METADATA = {"unit": "%", "format": ":.2f"}
@@ -78,8 +79,8 @@ class ModelAndLoss(nn.Module):
 
         return loss, output
 
-    def distributed(self, gpu_id):
-        self.model = DDP(self.model, device_ids=[gpu_id], output_device=gpu_id)
+    def distributed(self):
+        self.model = DDP(self.model, broadcast_buffers=False)
 
     def load_model_state(self, state):
         if not state is None:
@@ -191,7 +192,7 @@ def get_train_step(
         with autocast(enabled=use_amp):
             loss, output = model_and_loss(input_var, target_var)
             loss /= batch_size_multiplier
-            if torch.distributed.is_initialized():
+            if dist.is_initialized():
                 reduced_loss = utils.reduce_tensor(loss.data)
             else:
                 reduced_loss = loss.data
@@ -317,7 +318,7 @@ def get_val_step(model_and_loss, use_amp=False):
 
             prec1, prec5 = utils.accuracy(output.data, target, topk=(1, 5))
 
-            if torch.distributed.is_initialized():
+            if dist.is_initialized():
                 reduced_loss = utils.reduce_tensor(loss.data)
                 prec1 = utils.reduce_tensor(prec1)
                 prec5 = utils.reduce_tensor(prec5)
@@ -539,7 +540,7 @@ def train_loop(
                 logger.end_epoch()
 
             if save_checkpoints and (
-                not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0
+                not dist.is_initialized() or dist.get_rank() == 0
             ):
                 if should_backup_checkpoint(epoch):
                     backup_filename = "{}checkpoint-{}.pth.tar".format(backup_prefix, epoch + 1)

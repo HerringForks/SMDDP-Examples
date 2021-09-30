@@ -33,7 +33,7 @@ import numpy as np
 import torch
 import shutil
 import signal
-import torch.distributed as dist
+import smdistributed.dataparallel.torch.distributed as dist
 
 
 def should_backup_checkpoint(args):
@@ -50,7 +50,7 @@ def save_checkpoint(
     checkpoint_dir="./",
     backup_filename=None,
 ):
-    if (not torch.distributed.is_initialized()) or torch.distributed.get_rank() == 0:
+    if (not dist.is_initialized()) or dist.get_rank() == 0:
         filename = os.path.join(checkpoint_dir, filename)
         print("SAVING {}".format(filename))
         torch.save(state, filename)
@@ -100,7 +100,7 @@ def reduce_tensor(tensor):
     rt = tensor.clone()
     dist.all_reduce(rt, op=dist.ReduceOp.SUM)
     rt /= (
-        torch.distributed.get_world_size() if torch.distributed.is_initialized() else 1
+        dist.get_world_size() if dist.is_initialized() else 1
     )
     return rt
 
@@ -158,7 +158,7 @@ class TimeoutHandler:
 
 def calc_ips(batch_size, time):
     world_size = (
-        torch.distributed.get_world_size() if torch.distributed.is_initialized() else 1
+        dist.get_world_size() if dist.is_initialized() else 1
     )
     tbs = world_size * batch_size
     return tbs / time
