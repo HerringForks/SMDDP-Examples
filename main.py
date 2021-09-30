@@ -79,7 +79,7 @@ def available_models():
 
 
 def add_parser_arguments(parser, skip_arch=False):
-    parser.add_argument("data", metavar="DIR", help="path to dataset")
+    parser.add_argument("--data", metavar="DIR", default="/imagenet", help="path to dataset")
     parser.add_argument(
         "--data-backend",
         metavar="BACKEND",
