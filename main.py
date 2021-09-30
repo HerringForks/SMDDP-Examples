@@ -553,13 +553,13 @@ def prepare_for_training(args, model_args, model_arch):
 
 
 def main(args, model_args, model_arch):
-    exp_start_time = time.time()
     global best_prec1
     best_prec1 = 0
 
     model_and_loss, optimizer, lr_policy, scaler, train_loader, val_loader, logger, ema, model_ema, train_loader_len, \
         batch_size_multiplier, start_epoch = prepare_for_training(args, model_args, model_arch)
 
+    exp_start_time = time.time()
     train_loop(
         model_and_loss,
         optimizer,
@@ -589,8 +589,9 @@ def main(args, model_args, model_arch):
     )
     exp_duration = time.time() - exp_start_time
     if not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0:
+        print("Experiment ended")
+        print("Total training time: {:.2f} secs".format(exp_duration))
         logger.end()
-    print("Experiment ended")
 
 
 if __name__ == "__main__":
