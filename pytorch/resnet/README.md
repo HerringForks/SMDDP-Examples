@@ -1,3 +1,6 @@
+# Fork Info
+This example is forked from https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Classification/ConvNets.
+
 # Convolutional Network for Image Classification in PyTorch
 
 In this repository you will find implementations of various image classification models.
