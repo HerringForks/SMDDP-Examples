@@ -1,0 +1,27 @@
+#!/bin/bash
+#SBATCH --wait-all-nodes=1         # wait for all nodes
+#SBATCH -N 2                       # number of nodes
+#SBATCH -t 4:00:00                 # wall time
+#SBATCH -J "pt_nccl_resnet"        # job name
+#SBATCH --gres=gpu:8               # num gpus per node
+#SBATCH --ntasks-per-node=1        # tasks per node
+#SBATCH --exclusive                # exclusive node access
+#SBATCH --mem=0                    # all mem avail
+#SBATCH --overcommit               # Needed for pytorch
+
+# Configure the multinode script
+SCRIPT="/workspace/resnet/launch.sh"
+
+# Configure workspace in the file system
+WORK_DIR="/fsx/DeepLearningExamples/PyTorch/Classification/ConvNets"
+CONT_WORK_DIR="/workspace/resnet"
+
+# Configure container and mounting paths
+CONT="dlc-pt"
+MOUNTS="${WORK_DIR}:${CONT_WORK_DIR},/fsx/imagenet:/imagenet"
+
+srun nvidia-modprobe -u -c=0
+srun --mpi=none \
+      --container-name="${CONT}" \
+      --container-mounts="${MOUNTS}" \
+      bash "${SCRIPT}"
