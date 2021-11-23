@@ -20,23 +20,38 @@ import os
 import warnings
 warnings.simplefilter("ignore")
 import tensorflow as tf
-import horovod.tensorflow as hvd
+##
+#import horovod.tensorflow as hvd
+# Import the library's TensorFlow client and initialize it
+import smdistributed.dataparallel.tensorflow as sdp
+##
 from dllogger import StdOutBackend, JSONStreamBackend, Verbosity
 import dllogger as DLLogger
-from utils import hvd_utils
-
+##
+#from utils import hvd_utils
+# Import custom sdp_utils instead of Horovod utils
+from utils import sdp_utils
+##
 from utils.setup import set_flags
 from runtime import Runner
 from utils.cmdline_helper import parse_cmdline
 
 if __name__ == "__main__":
 
-    hvd.init()
+    ##
+    #hvd.init()
+    # Import the library's TensorFlow client and initialize it
+    sdp.init()
+    ##
+
     FLAGS = parse_cmdline()
     set_flags(FLAGS)
 
     backends = []
-    if not hvd_utils.is_using_hvd() or hvd.rank() == 0:
+    ##
+    #if not hvd_utils.is_using_hvd() or hvd.rank() == 0:
+    if not sdp_utils.is_using_sdp() or sdp.rank() == 0:
+    ##
         # Prepare Model Dir
         log_path = os.path.join(FLAGS.model_dir, FLAGS.log_filename)
         os.makedirs(FLAGS.model_dir, exist_ok=True)
@@ -54,9 +69,15 @@ if __name__ == "__main__":
         runner.train()
         
     if FLAGS.mode in ['eval', 'evaluate', 'inference_benchmark']:
-        if FLAGS.mode == 'inference_benchmark' and hvd_utils.is_using_hvd():
+        ##
+        #if FLAGS.mode == 'inference_benchmark' and hvd_utils.is_using_hvd():
+        if FLAGS.mode == 'inference_benchmark' and sdp_utils.is_using_sdp():
+        ##
             raise NotImplementedError("Only single GPU inference is implemented.")
-        elif not hvd_utils.is_using_hvd() or hvd.rank() == 0:
+        ##
+        #elif not hvd_utils.is_using_hvd() or hvd.rank() == 0:
+        elif not sdp_utils.is_using_sdp() or sdp.rank() == 0:
+        ##
             runner.evaluate()
             
     if FLAGS.mode == 'predict':
@@ -65,9 +86,13 @@ if __name__ == "__main__":
 
         if not os.path.isdir(FLAGS.to_predict):
             raise ValueError("Provide directory with images to infer!")
-
-        if hvd_utils.is_using_hvd():
+        ##
+        #if hvd_utils.is_using_hvd():
+        if sdp_utils.is_using_sdp():
+        ##
             raise NotImplementedError("Only single GPU inference is implemented.")
-
-        elif not hvd_utils.is_using_hvd() or hvd.rank() == 0:
+        ##
+        #elif not hvd_utils.is_using_hvd() or hvd.rank() == 0:
+        elif not sdp_utils.is_using_sdp() or sdp.rank() == 0:
+        ##
             runner.predict(FLAGS.to_predict, FLAGS.inference_checkpoint)

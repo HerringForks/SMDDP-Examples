@@ -27,7 +27,10 @@ import tensorflow_datasets as tfds
 from tensorflow import keras
 
 from utils import augment, preprocessing, Dali
-import horovod.tensorflow.keras as hvd
+##
+#import horovod.tensorflow.keras as hvd
+import smdistributed.dataparallel.tensorflow as sdp
+##
 import nvidia.dali.plugin.tf as dali_tf
 
 
@@ -89,7 +92,10 @@ class Dataset:
     self._use_dali = use_dali
     self.mixup_alpha = mixup_alpha
     
-    self._num_gpus = hvd.size()
+    ##
+    #self._num_gpus = hvd.size()
+    self._num_gpus = sdp.size()
+    ##
 
     if self._augmenter_name is not None:
       augmenter = AUGMENTERS.get(self._augmenter_name, None)
@@ -207,9 +213,14 @@ class Dataset:
         width=self._image_size,
         batch_size=self.local_batch_size,
         num_threads=1,
-        device_id=hvd.local_rank(),
-        shard_id=hvd.rank(),
-        num_gpus=hvd.size(),
+        ##
+        #device_id=hvd.local_rank(),
+        #shard_id=hvd.rank(),
+        #num_gpus=hvd.size(),
+        device_id=sdp.local_rank(),
+        shard_id=sdp.rank(),
+        num_gpus=sdp.size(),
+        ##
         num_classes=self.num_classes,
         deterministic=False,
         dali_cpu=False,
@@ -229,7 +240,10 @@ class Dataset:
             batch_size=self.local_batch_size,
             output_shapes=shapes,
             output_dtypes=dtypes,
-            device_id=hvd.local_rank())
+            ##
+            #device_id=hvd.local_rank())
+            device_id=sdp.local_rank()
+            ##
         # if self.is_training and self._augmenter:
         #     print('Augmenting with {}'.format(self._augmenter))
         #     dataset.unbatch().map(self.augment_pipeline, num_parallel_calls=tf.data.experimental.AUTOTUNE).batch(self.local_batch_size)
@@ -266,7 +280,10 @@ class Dataset:
       A TensorFlow dataset outputting batched images and labels.
     """
     if self._num_gpus > 1:
-      dataset = dataset.shard(self._num_gpus, hvd.rank())
+      ##
+      #dataset = dataset.shard(self._num_gpus, hvd.rank())
+      dataset = dataset.shard(self._num_gpus, sdp.rank())
+      ##
 
     if self.is_training:
       # Shuffle the input files.

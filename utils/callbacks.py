@@ -25,7 +25,10 @@ import tensorflow as tf
 from tensorflow import keras
 
 from utils import optimizer_factory
-import horovod.tensorflow as hvd
+##
+#import horovod.tensorflow as hvd
+import smdistributed.dataparallel.tensorflow as sdp
+##
 import time
 
 
@@ -43,11 +46,19 @@ def get_callbacks(model_checkpoint: bool = True,
   """Get all callbacks."""
   model_dir = model_dir or ''
   callbacks = []
-  if model_checkpoint and hvd.rank() == 0:
+  ##
+  #if model_checkpoint and hvd.rank() == 0:
+  # Checkpoint only on rank 0
+  if model_checkpoint and sdp.rank() == 0:
+  ##
     ckpt_full_path = os.path.join(model_dir, 'model.ckpt-{epoch:04d}')
     callbacks.append(tf.keras.callbacks.ModelCheckpoint(
         ckpt_full_path, save_weights_only=True, verbose=1, save_freq=save_checkpoint_freq))
-  if time_history and logger is not None and hvd.rank() == 0:
+  ##
+  #if time_history and logger is not None and hvd.rank() == 0:
+  # Log stats only on rank 0
+  if time_history and logger is not None and sdp.rank() == 0:
+  ##
     callbacks.append(
         TimeHistory(
             batch_size,

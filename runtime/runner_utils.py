@@ -18,12 +18,16 @@ import os
 import math
 
 import tensorflow as tf
-import horovod.tensorflow as hvd
-
+##
+#import horovod.tensorflow as hvd
+import smdistributed.dataparallel.tensorflow as sdp
+##
 from model import efficientnet_model
 
-from utils import dataset_factory, hvd_utils, callbacks, preprocessing
-
+##
+#from utils import dataset_factory, hvd_utils, callbacks, preprocessing
+from utils import dataset_factory, sdp_utils, callbacks, preprocessing
+##
 __all__ = ['get_optimizer_params', 'get_metrics', 'get_learning_rate_params', 'build_model_params', 'get_models', 'build_augmenter_params', \
             'get_image_size_from_model', 'get_dataset_builders', 'build_stats', 'parse_inference_input', 'preprocess_image_files']
 
@@ -141,8 +145,12 @@ def get_image_size_from_model(arch):
 
 def get_dataset_builders(params, one_hot):
     """Create and return train and validation dataset builders."""
-    if hvd.size() > 1:
-        num_gpus = hvd.size()
+    ##
+    #if hvd.size() > 1:
+    #    num_gpus = hvd.size()
+    if sdp.size() > 1:
+        num_gpus = sdp.size()
+    ##
     else:
         num_devices = 1
 
@@ -195,15 +203,28 @@ def build_stats(history, validation_output, train_callbacks, eval_callback, logg
     if history and history.history:
         train_hist = history.history
         #Gets final loss from training.
-        stats['training_loss'] = float(hvd.allreduce(tf.constant(train_hist['loss'][-1], dtype=tf.float32), average=True))
+        ##
+        #stats['training_loss'] = float(hvd.allreduce(tf.constant(train_hist['loss'][-1], dtype=tf.float32), average=True))
+        stats['training_loss'] = float(sdp.allreduce(tf.constant(train_hist['loss'][-1], dtype=tf.float32), 0, 1))
+        ##
         # Gets top_1 training accuracy.
         if 'categorical_accuracy' in train_hist:
-            stats['training_accuracy_top_1'] = float(hvd.allreduce(tf.constant(train_hist['categorical_accuracy'][-1], dtype=tf.float32), average=True))
+            ##
+            #stats['training_accuracy_top_1'] = float(hvd.allreduce(tf.constant(train_hist['categorical_accuracy'][-1], dtype=tf.float32), average=True))
+            stats['training_accuracy_top_1'] = float(sdp.allreduce(tf.constant(train_hist['categorical_accuracy'][-1], dtype=tf.float32), 0, 1))
+            ##
         elif 'sparse_categorical_accuracy' in train_hist:
-            stats['training_accuracy_top_1'] = float(hvd.allreduce(tf.constant(train_hist['sparse_categorical_accuracy'][-1], dtype=tf.float32), average=True))
+            ##
+            #stats['training_accuracy_top_1'] = float(hvd.allreduce(tf.constant(train_hist['sparse_categorical_accuracy'][-1], dtype=tf.float32), average=True))
+            stats['training_accuracy_top_1'] = float(sdp.allreduce(tf.constant(train_hist['sparse_categorical_accuracy'][-1], dtype=tf.float32), 0, 1))
+            ##
         elif 'accuracy' in train_hist:
-            stats['training_accuracy_top_1'] = float(hvd.allreduce(tf.constant(train_hist['accuracy'][-1], dtype=tf.float32), average=True))
-            stats['training_accuracy_top_5'] = float(hvd.allreduce(tf.constant(train_hist['top_5_accuracy'][-1], dtype=tf.float32), average=True))
+            ##
+            #stats['training_accuracy_top_1'] = float(hvd.allreduce(tf.constant(train_hist['accuracy'][-1], dtype=tf.float32), average=True))
+            #stats['training_accuracy_top_5'] = float(hvd.allreduce(tf.constant(train_hist['top_5_accuracy'][-1], dtype=tf.float32), average=True))
+            stats['training_accuracy_top_1'] = float(sdp.allreduce(tf.constant(train_hist['accuracy'][-1], dtype=tf.float32), 0, 1))
+            stats['training_accuracy_top_5'] = float(sdp.allreduce(tf.constant(train_hist['top_5_accuracy'][-1], dtype=tf.float32), 0, 1))
+            ##
 
     # Look for the time history callback which was used during keras.fit
     if train_callbacks:
@@ -211,10 +232,16 @@ def build_stats(history, validation_output, train_callbacks, eval_callback, logg
             if isinstance(callback, callbacks.TimeHistory):
                 if callback.epoch_runtime_log:
                     stats['avg_exp_per_second_training'] = callback.average_examples_per_second
-                    stats['avg_exp_per_second_training_per_GPU'] = callback.average_examples_per_second / hvd.size()
+                    ##
+                    #stats['avg_exp_per_second_training_per_GPU'] = callback.average_examples_per_second / hvd.size()
+                    stats['avg_exp_per_second_training_per_GPU'] = callback.average_examples_per_second / sdp.size()
+                    ##
 
     if eval_callback:
-        stats['avg_exp_per_second_eval'] = float(eval_callback.average_examples_per_second) * hvd.size()
+        ##
+        #stats['avg_exp_per_second_eval'] = float(eval_callback.average_examples_per_second) * hvd.size()
+        stats['avg_exp_per_second_eval'] = float(eval_callback.average_examples_per_second) * sdp.size()
+        ##
         stats['avg_exp_per_second_eval_per_GPU'] = float(eval_callback.average_examples_per_second)
         stats['avg_time_per_exp_eval'] = 1000./stats['avg_exp_per_second_eval']
         batch_time = eval_callback.batch_time
@@ -227,8 +254,10 @@ def build_stats(history, validation_output, train_callbacks, eval_callback, logg
         stats['latency_95pct'] = 1000.0 * latency_95pct_per_batch
         latency_99pct_per_batch = sum( batch_time[:int( 0.99 * len(batch_time) )] ) / int( 0.99 * len(batch_time) )
         stats['latency_99pct'] = 1000.0 * latency_99pct_per_batch
-
-    if not hvd_utils.is_using_hvd() or hvd.rank() == 0:
+    ##
+    #if not hvd_utils.is_using_hvd() or hvd.rank() == 0:
+    if not sdp_utils.is_using_sdp() or sdp.rank() == 0:
+    ##
         logger.log(step=(), data=stats)
 
 

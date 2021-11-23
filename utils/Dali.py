@@ -15,8 +15,10 @@
 import sys
 
 import tensorflow as tf
-import horovod.tensorflow.keras as hvd
-
+##
+#import horovod.tensorflow.keras as hvd
+import smdistributed.dataparallel.tensorflow as sdp
+##
 from nvidia import dali
 import nvidia.dali.plugin.tf as dali_tf
 import numpy as np
@@ -42,7 +44,10 @@ class DaliPipeline(dali.pipeline.Pipeline):
 
         kwargs = dict()
         if deterministic:
-            kwargs['seed'] = 7 * (1 + hvd.rank())
+            ##
+            #kwargs['seed'] = 7 * (1 + hvd.rank())
+            kwargs['seed'] = 7 * (1 + sdp.rank())
+            ##
         super(DaliPipeline, self).__init__(batch_size, num_threads, device_id, **kwargs)
 
         self.training = training

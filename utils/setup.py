@@ -15,12 +15,17 @@
 import os
 import numpy as np
 import tensorflow as tf
-import horovod.tensorflow as hvd
-
+##
+#import horovod.tensorflow as hvd
+import smdistributed.dataparallel.tensorflow as sdp
+##
 
 def set_flags(params):
     # os.environ['CUDA_CACHE_DISABLE'] = '1'
-    os.environ['HOROVOD_GPU_ALLREDUCE'] = 'NCCL'
+    ##
+    # Disable Horovod specific environment variables
+    #os.environ['HOROVOD_GPU_ALLREDUCE'] = 'NCCL'
+    ##
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     # os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
     # os.environ['TF_USE_CUDNN_BATCHNORM_SPATIAL_PERSISTENT'] = '0'
@@ -29,8 +34,11 @@ def set_flags(params):
     os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
     # os.environ['TF_SYNC_ON_FINISH'] = '0'
     os.environ['TF_AUTOTUNE_THRESHOLD'] = '2'
-    os.environ['HOROVOD_CACHE_CAPACITY'] = "0"
-    os.environ['HOROVOD_CYCLE_TIME'] = "1.0"
+    ##
+    # Disable Horovod specific environment variables
+    #os.environ['HOROVOD_CACHE_CAPACITY'] = "0"
+    #os.environ['HOROVOD_CYCLE_TIME'] = "1.0"
+    ##
     if params.intraop_threads:
         os.environ['TF_NUM_INTRAOP_THREADS'] = params.intraop_threads
     if params.interop_threads:
@@ -48,8 +56,10 @@ def set_flags(params):
         assert tf.config.experimental.get_memory_growth(gpu)
     tf.config.experimental.set_visible_devices(gpus, 'GPU')
     if gpus:
-        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
-
+        ##
+        #tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+        tf.config.experimental.set_visible_devices(gpus[sdp.local_rank()], 'GPU')
+        ##
 
     np.random.seed(params.seed)
     tf.random.set_seed(params.seed)

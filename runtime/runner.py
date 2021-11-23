@@ -23,9 +23,15 @@ import time
 import tensorflow as tf
 import numpy as np
 
-import horovod.tensorflow.keras as hvd
+##
+#import horovod.tensorflow.keras as hvd
+import smdistributed.dataparallel.tensorflow as sdp
+##
 
-from utils import hvd_utils, optimizer_factory
+##
+#from utils import hvd_utils, optimizer_factory
+from utils import sdp_utils, optimizer_factory
+##
 from utils import callbacks as custom_callbacks
 
 from runtime.runner_utils import get_optimizer_params, get_metrics, get_learning_rate_params, \
@@ -51,7 +57,10 @@ class Runner(object):
         self.params = flags
         self.logger = logger
 
-        if hvd.rank() == 0:
+        ##
+        #if hvd.rank() == 0:
+        if sdp.rank() == 0:
+        ##
             self.serialize_config(model_dir=self.params.model_dir)
 
         # =================================================
@@ -171,7 +180,10 @@ class Runner(object):
         metrics_map = get_metrics(self.one_hot)
         metrics = [metrics_map[metric] for metric in self.metrics]
 
-        optimizer = hvd.DistributedOptimizer(optimizer, compression=hvd.Compression.fp16)
+        ##
+        #optimizer = hvd.DistributedOptimizer(optimizer, compression=hvd.Compression.fp16)
+        optimizer = sdp.keras.DistributedOptimizer(optimizer, compression=sdp.Compression.fp16)
+        ##
         
         if self.one_hot:
             loss_obj = tf.keras.losses.CategoricalCrossentropy(
@@ -191,7 +203,10 @@ class Runner(object):
                                                 train_steps=train_steps)
         
         #Define Callbacks (TODO)
-        callbacks=[hvd.callbacks.BroadcastGlobalVariablesCallback(0)]
+        ##
+        #callbacks=[hvd.callbacks.BroadcastGlobalVariablesCallback(0)]
+        callbacks=[sdp.keras.callbacks.BroadcastGlobalVariablesCallback(0)]
+        ##
         callbacks += custom_callbacks.get_callbacks(
             model_checkpoint=self.params.enable_checkpoint_and_export,
             include_tensorboard=self.params.enable_tensorboard,
@@ -229,7 +244,10 @@ class Runner(object):
             eval_callback = custom_callbacks.EvalTimeHistory(batch_size=self.params.eval_batch_size, logger=self.logger)
             worker_validation_output = self.model.evaluate(
                 self.validation_dataset, steps=validation_steps, callbacks=eval_callback, verbose=2)
-            validation_output = list(hvd.allreduce(worker_validation_output,average=True))
+            ##
+            #validation_output = list(hvd.allreduce(worker_validation_output,average=True))
+            validation_output = list(sdp.allreduce(worker_validation_output, 0, 1))
+            ##
 
         build_stats(history, validation_output, callbacks, eval_callback, self.logger)
 
