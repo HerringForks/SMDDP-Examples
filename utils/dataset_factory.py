@@ -242,7 +242,7 @@ class Dataset:
             output_dtypes=dtypes,
             ##
             #device_id=hvd.local_rank())
-            device_id=sdp.local_rank()
+            device_id=sdp.local_rank())
             ##
         # if self.is_training and self._augmenter:
         #     print('Augmenting with {}'.format(self._augmenter))

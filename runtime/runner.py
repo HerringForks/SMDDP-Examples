@@ -26,6 +26,8 @@ import numpy as np
 ##
 #import horovod.tensorflow.keras as hvd
 import smdistributed.dataparallel.tensorflow as sdp
+from smdistributed.dataparallel.tensorflow.keras import callbacks as sdp_callbacks
+import smdistributed.dataparallel.tensorflow.keras as sdp_keras
 ##
 
 ##
@@ -182,7 +184,7 @@ class Runner(object):
 
         ##
         #optimizer = hvd.DistributedOptimizer(optimizer, compression=hvd.Compression.fp16)
-        optimizer = sdp.keras.DistributedOptimizer(optimizer, compression=sdp.Compression.fp16)
+        optimizer = sdp_keras.DistributedOptimizer(optimizer, compression=sdp.Compression.fp16)
         ##
         
         if self.one_hot:
@@ -205,7 +207,7 @@ class Runner(object):
         #Define Callbacks (TODO)
         ##
         #callbacks=[hvd.callbacks.BroadcastGlobalVariablesCallback(0)]
-        callbacks=[sdp.keras.callbacks.BroadcastGlobalVariablesCallback(0)]
+        callbacks=[sdp_callbacks.BroadcastGlobalVariablesCallback(0)]
         ##
         callbacks += custom_callbacks.get_callbacks(
             model_checkpoint=self.params.enable_checkpoint_and_export,
