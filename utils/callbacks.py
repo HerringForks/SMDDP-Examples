@@ -29,6 +29,12 @@ from utils import optimizer_factory
 #import horovod.tensorflow as hvd
 import smdistributed.dataparallel.tensorflow as sdp
 ##
+# Sagemaker uses s3 to save model, and since 2.6 s3 support needs tensorflow-io package
+# https://giters.com/tensorflow/tensorflow/issues/51583?amp=1
+from distutils.version import LooseVersion
+if LooseVersion(tf.__version__) >= LooseVersion("2.6"):
+    import tensorflow_io as tfio
+
 import time
 
 

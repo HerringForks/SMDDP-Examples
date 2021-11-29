@@ -18,6 +18,10 @@
 import argparse
 import yaml
 
+##
+# SM environment specific
+import os
+##
 
 def _add_bool_argument(parser, name=None, default=False, required=False, help=None):
 
@@ -39,7 +43,10 @@ def parse_cmdline():
     p.add_argument(
         '--model_dir',
         type=str,
-        default=None,
+        ##
+        #default=None,
+        default=os.environ['SM_MODEL_DIR'],
+        ##
         help=('The directory where the model and training/evaluation summaries'
                 'are stored.'))
 
@@ -79,8 +86,11 @@ def parse_cmdline():
     p.add_argument(
       '--data_dir',
       type=str,
-      default='.',
-      required=True,
+      ##
+      #default='.',
+      #required=True,
+      default=os.environ['SM_CHANNEL_TRAIN'],
+      ##
       help='The location of the input data. Files should be named `train-*` and `validation-*`.')
     
     p.add_argument(
