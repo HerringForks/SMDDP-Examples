@@ -45,7 +45,10 @@ def set_flags(params):
         os.environ['TF_NUM_INTEROP_THREADS'] = params.interop_threads
 
     if params.use_xla:
-        os.environ['TF_XLA_FLAGS'] = "--tf_xla_enable_lazy_compilation=false --tf_xla_auto_jit=1 --tf_xla_async_io_level=1"
+        ## TF XLA flag tf_xla_async_io_level is not available in latest XLA
+        #os.environ['TF_XLA_FLAGS'] = "--tf_xla_enable_lazy_compilation=false --tf_xla_auto_jit=1 --tf_xla_async_io_level=1"
+        os.environ['TF_XLA_FLAGS'] = "--tf_xla_enable_lazy_compilation=false --tf_xla_auto_jit=1"
+        ##
         os.environ['TF_EXTRA_PTXAS_OPTIONS'] = "-sw200428197=true"
         tf.keras.backend.clear_session()
         tf.config.optimizer.set_jit(True)
