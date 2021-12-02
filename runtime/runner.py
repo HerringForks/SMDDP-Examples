@@ -248,7 +248,7 @@ class Runner(object):
                 self.validation_dataset, steps=validation_steps, callbacks=eval_callback, verbose=2)
             ##
             #validation_output = list(hvd.allreduce(worker_validation_output,average=True))
-            validation_output = list(sdp.allreduce(worker_validation_output, 0, 1))
+            validation_output = list(sdp.oob_allreduce(worker_validation_output))
             ##
 
         build_stats(history, validation_output, callbacks, eval_callback, self.logger)

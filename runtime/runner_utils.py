@@ -205,25 +205,25 @@ def build_stats(history, validation_output, train_callbacks, eval_callback, logg
         #Gets final loss from training.
         ##
         #stats['training_loss'] = float(hvd.allreduce(tf.constant(train_hist['loss'][-1], dtype=tf.float32), average=True))
-        stats['training_loss'] = float(sdp.allreduce(tf.constant(train_hist['loss'][-1], dtype=tf.float32), 0, 1))
+        stats['training_loss'] = float(sdp.oob_allreduce(tf.constant(train_hist['loss'][-1], dtype=tf.float32)))
         ##
         # Gets top_1 training accuracy.
         if 'categorical_accuracy' in train_hist:
             ##
             #stats['training_accuracy_top_1'] = float(hvd.allreduce(tf.constant(train_hist['categorical_accuracy'][-1], dtype=tf.float32), average=True))
-            stats['training_accuracy_top_1'] = float(sdp.allreduce(tf.constant(train_hist['categorical_accuracy'][-1], dtype=tf.float32), 0, 1))
+            stats['training_accuracy_top_1'] = float(sdp.oob_allreduce(tf.constant(train_hist['categorical_accuracy'][-1], dtype=tf.float32)))
             ##
         elif 'sparse_categorical_accuracy' in train_hist:
             ##
             #stats['training_accuracy_top_1'] = float(hvd.allreduce(tf.constant(train_hist['sparse_categorical_accuracy'][-1], dtype=tf.float32), average=True))
-            stats['training_accuracy_top_1'] = float(sdp.allreduce(tf.constant(train_hist['sparse_categorical_accuracy'][-1], dtype=tf.float32), 0, 1))
+            stats['training_accuracy_top_1'] = float(sdp.oob_allreduce(tf.constant(train_hist['sparse_categorical_accuracy'][-1], dtype=tf.float32)))
             ##
         elif 'accuracy' in train_hist:
             ##
             #stats['training_accuracy_top_1'] = float(hvd.allreduce(tf.constant(train_hist['accuracy'][-1], dtype=tf.float32), average=True))
             #stats['training_accuracy_top_5'] = float(hvd.allreduce(tf.constant(train_hist['top_5_accuracy'][-1], dtype=tf.float32), average=True))
-            stats['training_accuracy_top_1'] = float(sdp.allreduce(tf.constant(train_hist['accuracy'][-1], dtype=tf.float32), 0, 1))
-            stats['training_accuracy_top_5'] = float(sdp.allreduce(tf.constant(train_hist['top_5_accuracy'][-1], dtype=tf.float32), 0, 1))
+            stats['training_accuracy_top_1'] = float(sdp.oob_allreduce(tf.constant(train_hist['accuracy'][-1], dtype=tf.float32)))
+            stats['training_accuracy_top_5'] = float(sdp.oob_allreduce(tf.constant(train_hist['top_5_accuracy'][-1], dtype=tf.float32)))
             ##
 
     # Look for the time history callback which was used during keras.fit
