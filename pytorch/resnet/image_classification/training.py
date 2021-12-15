@@ -43,6 +43,7 @@ from .optimizers import get_sgd_optimizer, get_rmsprop_optimizer
 from .models.common import EMA
 #import smdistributed.dataparallel.torch.distributed as dist
 #from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel as DDP
+import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch_smddp
 dist.init_process_group(backend='smddp')
