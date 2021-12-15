@@ -331,7 +331,7 @@ def prepare_for_training(args, model_args, model_arch):
     args.distributed = False
     if dist.get_world_size() > 1:
         args.distributed = True
-        args.local_rank = dist.get_local_rank()
+        args.local_rank = dist.get_rank() % 8
     else:
         args.local_rank = 0
 
@@ -339,7 +339,7 @@ def prepare_for_training(args, model_args, model_arch):
     args.world_size = 1
 
     if args.distributed:
-        args.gpu = dist.get_local_rank()
+        args.gpu = dist.get_rank() % 8
         torch.cuda.set_device(args.gpu)
         # dist.init_process_group(backend="nccl", init_method="env://")
         args.world_size = dist.get_world_size()
