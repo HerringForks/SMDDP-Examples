@@ -40,8 +40,9 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
-import smdistributed.dataparallel.torch.distributed as dist
-dist.init_process_group()
+#import smdistributed.dataparallel.torch.distributed as dist
+#dist.init_process_group()
+import torch.distributed as dist
 
 import image_classification.logger as log
 
@@ -606,7 +607,7 @@ if __name__ == "__main__":
     add_parser_arguments(parser)
 
     args, rest = parser.parse_known_args()
-    
+
     model_arch = available_models()[args.arch]
     model_args, rest = model_arch.parser().parse_known_args(rest)
     print(model_args)
