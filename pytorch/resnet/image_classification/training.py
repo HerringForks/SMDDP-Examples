@@ -41,8 +41,13 @@ import dllogger
 
 from .optimizers import get_sgd_optimizer, get_rmsprop_optimizer
 from .models.common import EMA
-import smdistributed.dataparallel.torch.distributed as dist
-from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel as DDP
+#import smdistributed.dataparallel.torch.distributed as dist
+#from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel as DDP
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch_smddp
+dist.init_process_group(backend='smddp')
+
 from torch.cuda.amp import autocast
 
 ACC_METADATA = {"unit": "%", "format": ":.2f"}
@@ -480,7 +485,7 @@ def train_loop(
         epochs_since_improvement = 0
     backup_prefix = checkpoint_filename[:-len("checkpoint.pth.tar")] if \
         checkpoint_filename.endswith("checkpoint.pth.tar") else ""
-    
+
     print(f"RUNNING EPOCHS FROM {start_epoch} TO {end_epoch}")
     with utils.TimeoutHandler() as timeout_handler:
         interrupted = False

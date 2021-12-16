@@ -34,7 +34,8 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from PIL import Image
 from functools import partial
-import smdistributed.dataparallel.torch.distributed as dist
+#import smdistributed.dataparallel.torch.distributed as dist
+import torch.distributed as dist
 
 from image_classification.autoaugment import AutoaugmentImageNetPolicy
 
