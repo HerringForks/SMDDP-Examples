@@ -67,6 +67,7 @@ from image_classification.optimizers import (
 from image_classification.gpu_affinity import set_affinity, AffinityMode
 import dllogger
 
+import torch_smddp
 
 def available_models():
     models = {
@@ -369,7 +370,7 @@ def prepare_for_training(args, model_args, model_arch):
     if args.distributed:
         args.gpu = args.local_rank % torch.cuda.device_count()
         torch.cuda.set_device(args.gpu)
-        dist.init_process_group(backend="nccl", init_method="env://")
+        dist.init_process_group(backend="smddp", init_method="env://")
         args.world_size = torch.distributed.get_world_size()
 
     affinity = set_affinity(args.gpu, mode=args.gpu_affinity)
