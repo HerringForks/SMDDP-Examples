@@ -67,6 +67,7 @@ from image_classification.optimizers import (
 from image_classification.gpu_affinity import set_affinity, AffinityMode
 import dllogger
 
+# Import torch_smddp to use SMDDP as a distributed backend
 import torch_smddp
 
 def available_models():
@@ -370,6 +371,7 @@ def prepare_for_training(args, model_args, model_arch):
     if args.distributed:
         args.gpu = args.local_rank % torch.cuda.device_count()
         torch.cuda.set_device(args.gpu)
+        # Use SMDDP as the distributed backend. No other changes are required for this to work.
         dist.init_process_group(backend="smddp", init_method="env://")
         args.world_size = torch.distributed.get_world_size()
 
