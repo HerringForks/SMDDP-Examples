@@ -29,10 +29,6 @@ platform:
     DGXA100:
         workers: 10
         prefetch: 4
-        gpu_affinity: socket_unique_contiguous
-    P4D:
-        workers: 10
-        prefetch: 4
 
 mode:
     benchmark_training: &benchmark_training
@@ -321,16 +317,6 @@ models:
                 <<: *efficientnet_b0_params_4k
                 arch: efficientnet-b0
                 batch_size: 256
-        P4D:
-            AMP:
-                <<: *efficientnet_b0_params_4k
-                arch: efficientnet-b0
-                batch_size: 512
-                memory_format: nhwc
-            TF32:
-                <<: *efficientnet_b0_params_4k
-                arch: efficientnet-b0
-                batch_size: 256
     # }}}
     efficientnet-quant-b0: # {{{
         T4:
@@ -457,16 +443,6 @@ models:
                 <<: *efficientnet_b4_params_4k
                 arch: efficientnet-b4
                 batch_size: 64
-        P4D:
-            AMP:
-                <<: *efficientnet_b4_params_4k
-                arch: efficientnet-b4
-                batch_size: 64
-                memory_format: nhwc
-            TF32:
-                <<: *efficientnet_b4_params_4k
-                arch: efficientnet-b4
-                batch_size: 32
     # }}}
     efficientnet-quant-b4: # {{{
         T4:
