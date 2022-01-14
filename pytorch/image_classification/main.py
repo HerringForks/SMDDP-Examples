@@ -46,7 +46,7 @@ import image_classification.logger as log
 
 from image_classification.smoothing import LabelSmoothing
 from image_classification.mixup import NLLMultiLabelSmooth, MixUpWrapper
-from image_classification.dataloaders import DATA_BACKEND_CHOICES, get_pytorch_train_loader, get_pytorch_val_loader
+from image_classification.dataloaders import DATA_BACKEND_CHOICES, get_pytorch_train_loader, get_pytorch_val_loader, get_syntetic_loader
 from image_classification.training import *
 from image_classification.utils import *
 from image_classification.models import (
@@ -457,9 +457,9 @@ def prepare_for_training(args, model_args, model_arch):
     # elif args.data_backend == "dali-cpu":
     #     get_train_loader = get_dali_train_loader(dali_cpu=True)
     #     get_val_loader = get_dali_val_loader()
-    # elif args.data_backend == "syntetic":
-    #     get_val_loader = get_syntetic_loader
-    #     get_train_loader = get_syntetic_loader
+    elif args.data_backend == "syntetic":
+        get_val_loader = get_syntetic_loader
+        get_train_loader = get_syntetic_loader
     else:
         print("Bad databackend picked")
         exit(1)
