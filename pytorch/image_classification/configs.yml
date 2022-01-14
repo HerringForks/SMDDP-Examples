@@ -20,6 +20,9 @@ platform:
         workers: 8
     DGXA100:
         workers: 16
+    # Platform for training with P4D instances
+    P4D:
+        workers: 8
 
 mode:
     benchmark_training: &benchmark_training
@@ -188,6 +191,8 @@ models:
                 <<: *resnet_params_1k
                 arch: resnext101-32x4d
                 batch_size: 64
+        P4D: 
+            <<: *RNXT_DGX1V
     # }}}
     se-resnext101-32x4d: # {{{
         DGX1V: &SERNXT_DGX1V
@@ -303,6 +308,16 @@ models:
                 <<: *efficientnet_b0_params_4k
                 arch: efficientnet-b0
                 batch_size: 256
+                memory_format: nhwc
+            TF32:
+                <<: *efficientnet_b0_params_4k
+                arch: efficientnet-b0
+                batch_size: 256
+        P4D:
+            AMP:
+                <<: *efficientnet_b0_params_4k
+                arch: efficientnet-b0
+                batch_size: 512
                 memory_format: nhwc
             TF32:
                 <<: *efficientnet_b0_params_4k
@@ -434,6 +449,16 @@ models:
                 <<: *efficientnet_b4_params_4k
                 arch: efficientnet-b4
                 batch_size: 64
+        P4D:
+            AMP:
+                <<: *efficientnet_b4_params_4k
+                arch: efficientnet-b4
+                batch_size: 64
+                memory_format: nhwc
+            TF32:
+                <<: *efficientnet_b4_params_4k
+                arch: efficientnet-b4
+                batch_size: 32
     # }}}
     efficientnet-quant-b4: # {{{
         T4:
