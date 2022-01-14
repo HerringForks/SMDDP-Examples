@@ -29,6 +29,7 @@ platform:
     DGXA100:
         workers: 10
         prefetch: 4
+        gpu_affinity: socket_unique_contiguous
 
 mode:
     benchmark_training: &benchmark_training
