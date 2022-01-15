@@ -75,8 +75,6 @@ if __name__ == "__main__":
     prof = args.prof
     workspace = args.workspace
     data_backend = args.data_backend
-    batch_size = args.batch_size
-    optimizer_batch_size = args.optimizer_batch_size
     seed = args.seed
     raport_file = args.raport_file
 
