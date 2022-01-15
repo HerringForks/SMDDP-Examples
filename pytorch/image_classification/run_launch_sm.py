@@ -27,21 +27,6 @@ def parse_args():
         help="number of total epochs to run",
     )
     parser.add_argument(
-        "-b",
-        "--batch-size",
-        default=256,
-        type=int,
-        metavar="N",
-        help="mini-batch size (default: 256) per gpu",
-    )
-    parser.add_argument(
-        "--optimizer-batch-size",
-        default=-1,
-        type=int,
-        metavar="N",
-        help="size of a total batch size, for simulating bigger batches using gradient accumulation",
-    )
-    parser.add_argument(
         "--prof", type=int, default=-1, metavar="N", help="Run only N iterations"
     )
     parser.add_argument(
@@ -107,8 +92,8 @@ if __name__ == "__main__":
     cmd = f"python -m torch.distributed.launch --nnodes={num_nodes} --node_rank={rank} --nproc_per_node={num_gpus} \
         --master_addr={hosts[0]} --master_port='12345' \
     {main_path} --model {model} --precision {precision} --mode {mode} --platform {platform} {data_dir} --epochs {epochs} \
-        --prof {prof} --workspace {workspace} --data-backend {data_backend} --batch-size {batch_size} --optimizer-batch-size \
-        {optimizer_batch_size} --seed {seed} --raport-file {raport_file}"
+        --prof {prof} --workspace {workspace} --data-backend {data_backend} --seed {seed} --raport-file {raport_file}"
+
 
     print (cmd)
     invoke_train(cmd)
