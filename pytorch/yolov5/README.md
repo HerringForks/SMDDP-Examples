@@ -1,3 +1,17 @@
+# Fork Info
+This example is forked from https://github.com/ultralytics/yolov5
+
+# Run Instructions on AWS P-Clusters
+```
+# prepare training data, preferably push to each compute node’s /scratch directory and modify data/coco.yaml to point to it (fsx bottleneck has been be an issue)
+
+# build and push the docker image for SMDDP
+
+# Import, create and build herring on the Pyxis image
+
+# Make sure the code is inside /fsx and data is inside /scratch and run : hrun -N 8 --container smddp_container python /fsx/SMDDP-Examples/pytorch/yolov5/train.py --data /fsx/SMDDP-Examples/pytorch/yolov5/data/coco.yaml --weights /fsx/SMDDP-Examples/pytorch/yolov5/yolov5l.pt  --epochs 20 --batch-size 1024 
+```
+
 <div align="center">
 <p>
    <a align="left" href="https://ultralytics.com/yolov5" target="_blank">
