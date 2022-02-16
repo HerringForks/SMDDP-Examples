@@ -20,8 +20,6 @@ import torch.nn.functional as F
 
 from utils.general import LOGGER
 
-import smdistributed.dataparallel.torch.torch_smddp
-
 try:
     import thop  # for FLOPs computation
 except ImportError:
@@ -159,8 +157,7 @@ def profile(input, ops, n=10, device=None):
 
 def is_parallel(model):
     # Returns True if model is of type DP or DDP
-    return type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel,
-                           smdistributed.dataparallel.torch.parallel.distributed.DistributedDataParallel)
+    return type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)
 
 
 def de_parallel(model):

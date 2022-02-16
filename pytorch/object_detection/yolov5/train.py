@@ -62,7 +62,7 @@ import smdistributed.dataparallel.torch.torch_smddp
 dist.init_process_group(backend='smddp')
 WORLD_SIZE = dist.get_world_size()
 RANK = dist.get_rank()
-LOCAL_RANK = os.environ['LOCAL_RANK']
+LOCAL_RANK = int(os.environ['LOCAL_RANK'])
 '''
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
