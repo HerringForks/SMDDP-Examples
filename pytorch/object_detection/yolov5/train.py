@@ -57,10 +57,17 @@ from utils.metrics import fitness
 from utils.plots import plot_evolve, plot_labels
 from utils.torch_utils import EarlyStopping, ModelEMA, de_parallel, select_device, torch_distributed_zero_first
 
+import smdistributed.dataparallel.torch.torch_smddp
+
+dist.init_process_group(backend='smddp')
+WORLD_SIZE = dist.get_world_size()
+RANK = dist.get_rank()
+LOCAL_RANK = os.environ['LOCAL_RANK']
+'''
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
 WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
-
+'''
 
 def train(hyp,  # path/to/hyp.yaml or hyp dictionary
           opt,
@@ -252,7 +259,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 
     # DDP mode
     if cuda and RANK != -1:
-        model = DDP(model, device_ids=[LOCAL_RANK], output_device=LOCAL_RANK)
+        #model = DDP(model, device_ids=[LOCAL_RANK], output_device=LOCAL_RANK)
+        model = DDP(model, device_ids=[LOCAL_RANK], broadcast_buffers=False)
 
     # Model attributes
     nl = de_parallel(model).model[-1].nl  # number of detection layers (to scale hyps)
@@ -531,7 +539,7 @@ def main(opt, callbacks=Callbacks()):
         assert torch.cuda.device_count() > LOCAL_RANK, 'insufficient CUDA devices for DDP command'
         torch.cuda.set_device(LOCAL_RANK)
         device = torch.device('cuda', LOCAL_RANK)
-        dist.init_process_group(backend="nccl" if dist.is_nccl_available() else "gloo")
+        #dist.init_process_group(backend="nccl" if dist.is_nccl_available() else "gloo")
 
     # Train
     if not opt.evolve:
