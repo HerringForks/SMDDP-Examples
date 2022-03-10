@@ -31,6 +31,7 @@ import argparse
 import random
 from copy import deepcopy
 import signal
+import os
 
 import torch.backends.cudnn as cudnn
 import torch.nn.parallel
@@ -40,8 +41,8 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
-import smdistributed.dataparallel.torch.distributed as dist
-dist.init_process_group()
+import smdistributed.dataparallel.torch.torch_smddp
+import torch.distributed as dist
 
 import image_classification.logger as log
 
@@ -328,9 +329,9 @@ def add_parser_arguments(parser, skip_arch=False):
 def prepare_for_training(args, model_args, model_arch):
 
     args.distributed = False
-    if dist.get_world_size() > 1:
-        args.distributed = True
-        args.local_rank = dist.get_local_rank()
+    if "WORLD_SIZE" in os.environ:
+        args.distributed = int(os.environ["WORLD_SIZE"]) > 1
+        args.local_rank = int(os.getenv('LOCAL_RANK', 0))
     else:
         args.local_rank = 0
 
@@ -338,9 +339,9 @@ def prepare_for_training(args, model_args, model_arch):
     args.world_size = 1
 
     if args.distributed:
-        args.gpu = dist.get_local_rank()
+        args.gpu = args.local_rank % torch.cuda.device_count()
         torch.cuda.set_device(args.gpu)
-        # dist.init_process_group(backend="nccl", init_method="env://")
+        dist.init_process_group(backend="smddp", init_method="env://")
         args.world_size = dist.get_world_size()
 
     if args.seed is not None:
@@ -536,7 +537,7 @@ def prepare_for_training(args, model_args, model_arch):
     )
 
     if args.distributed:
-        model_and_loss.distributed()
+        model_and_loss.distributed(args.gpu)
 
     model_and_loss.load_model_state(model_state)
     if (ema is not None) and (model_state_ema is not None):

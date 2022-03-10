@@ -33,7 +33,7 @@ import numpy as np
 import torch
 import shutil
 import signal
-import smdistributed.dataparallel.torch.distributed as dist
+import torch.distributed as dist
 
 
 def should_backup_checkpoint(args):
