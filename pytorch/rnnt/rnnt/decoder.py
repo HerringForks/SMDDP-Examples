@@ -40,7 +40,7 @@ def graph_simple(func_or_module,
             del outputs
         # print("Graphing\n", flush=True)
         # Capture forward pass
-        fwd_graph = torch.cuda._Graph()
+        fwd_graph = torch.cuda.CUDAGraph()
         fwd_graph.capture_begin()
         outputs  = func_or_module(*sample_args)
         fwd_graph.capture_end()

@@ -88,7 +88,7 @@ def graph(func_or_module,
         # print("Graphing\n", flush=True)
 
         # Capture forward pass
-        fwd_graph = torch.cuda._Graph()
+        fwd_graph = torch.cuda.CUDAGraph()
         fwd_graph.capture_begin()
         outputs  = func_or_module(*sample_args)
         fwd_graph.capture_end()
@@ -102,7 +102,7 @@ def graph(func_or_module,
         needed_incoming_grads = tuple(b for b in buffer_incoming_grads if b is not None)
 
         # Capture gradient creation
-        bwd_graph = torch.cuda._Graph()
+        bwd_graph = torch.cuda.CUDAGraph()
         bwd_graph.capture_begin(pool=fwd_graph.pool())
         torch.cuda.nvtx.range_push("capturing autograd.grad")
         grad_inputs = torch.autograd.grad(outputs_require_grad,
@@ -135,7 +135,7 @@ def graph(func_or_module,
             with torch.no_grad():
                 func_or_module.eval()
 
-                eval_graph = torch.cuda._Graph()
+                eval_graph = torch.cuda.CUDAGraph()
                 eval_graph.capture_begin()
                 eval_outputs  = func_or_module(*sample_args)
                 eval_graph.capture_end()
