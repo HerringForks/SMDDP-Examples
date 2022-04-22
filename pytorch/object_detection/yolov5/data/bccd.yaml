@@ -1,5 +1,5 @@
-train: /fsx/bccd/train/images
-val: /fsx/bccd/valid/images
+train: /opt/ml/input/data/train/train/images
+val: /opt/ml/input/data/train/valid/images
 
 nc: 3
 names: ['Platelets', 'RBC', 'WBC']
