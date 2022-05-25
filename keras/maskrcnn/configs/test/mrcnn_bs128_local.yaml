@@ -5,8 +5,8 @@ PATHS:
     VAL_ANNOTATIONS: "/fsx/data/maskrcnn/annotations/instances_val2017.json"
     OUT_DIR: "/fsx/data/maskrcnn/checkpoints"
 INPUT:
-    TRAIN_BATCH_SIZE: 96
-    EVAL_BATCH_SIZE: 96
+    TRAIN_BATCH_SIZE: 128
+    EVAL_BATCH_SIZE: 128
 MODEL:
     DENSE:
         PRE_NMS_TOP_N_TRAIN: 2000

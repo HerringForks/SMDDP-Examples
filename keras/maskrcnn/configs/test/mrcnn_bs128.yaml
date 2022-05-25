@@ -5,8 +5,8 @@ PATHS:
     VAL_ANNOTATIONS: "/opt/ml/input/data/train/annotations/instances_val2017.json"
     OUT_DIR: "/opt/ml/code/checkpoints/tensorflow_mask_rcnn"
 INPUT:
-    TRAIN_BATCH_SIZE: 96
-    EVAL_BATCH_SIZE: 96
+    TRAIN_BATCH_SIZE: 128
+    EVAL_BATCH_SIZE: 128
 MODEL:
     DENSE:
         PRE_NMS_TOP_N_TRAIN: 2000

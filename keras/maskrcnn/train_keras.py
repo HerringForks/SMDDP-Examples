@@ -29,8 +29,6 @@ sm_framework_params = os.environ.get('SM_FRAMEWORK_PARAMS', None)
 if sm_framework_params is not None:
     sm_framework_params_dict = json.loads(sm_framework_params)
     instance_type = sm_framework_params_dict.get('sagemaker_instance_type', None)
-    if instance_type != 'ml.p4d.24xlarge':
-        print('Warning: instance type is not fully supported in private preview, please use p4d.24xlarge for best performance')
 
 # load backbone weights
 def load_pretrained_weights(detector_model, dataset, cfg):
