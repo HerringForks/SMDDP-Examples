@@ -1,0 +1,1 @@
+pip install --upgrade tensorflow_addons tensorflow_datasets tensorflow-io yacs 'git+https://github.com/NVIDIA/cocoapi#egg=pycocotools&subdirectory=PythonAPI'
